@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:\\\\Users\\\\Derek\\\\OneDrive\\\\Desktop\\\\AIDocuReader\" && docker compose ps 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\Derek\\\\OneDrive\\\\Desktop\\\\AIDocuReader\\\\backend\" && .venv/Scripts/python.exe -c \"\nimport os\nfrom dotenv import load_dotenv\nload_dotenv\\(\\)\nurl = os.getenv\\('DATABASE_URL'\\)\nprint\\('URL:', repr\\(url\\)\\)\n\nfrom sqlalchemy import create_engine, text\nengine = create_engine\\(url\\)\nwith engine.connect\\(\\) as conn:\n    conn.execute\\(text\\('SELECT 1'\\)\\)\nprint\\('Connection successful!'\\)\n\" 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\Derek\\\\OneDrive\\\\Desktop\\\\AIDocuReader\\\\backend\" && .venv/Scripts/python.exe -c \"\nimport os\nfrom dotenv import load_dotenv\nload_dotenv\\(\\)\nprint\\('URL:', repr\\(os.getenv\\('DATABASE_URL'\\)\\)\\)\n\" 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\Derek\\\\OneDrive\\\\Desktop\\\\AIDocuReader\\\\backend\" && .venv/Scripts/python.exe -c \"\nfrom sqlalchemy import create_engine, text\nengine = create_engine\\('postgresql://postgres:postgres@localhost:5432/aidocureader'\\)\nwith engine.connect\\(\\) as conn:\n    conn.execute\\(text\\('SELECT 1'\\)\\)\nprint\\('Connected!'\\)\n\" 2>&1)",
+      "Bash(powershell -Command \"Stop-Service -Name \\(Get-Service | Where-Object {$_.DisplayName -like '*postgres*'} | Select-Object -ExpandProperty Name\\) -ErrorAction SilentlyContinue; Get-Service | Where-Object {$_.DisplayName -like '*postgres*'} | Select-Object Name,Status,StartType\" 2>&1)",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Stop-Service -Name postgresql-x64-17 -Force -ErrorAction SilentlyContinue; Stop-Service -Name postgresql -Force -ErrorAction SilentlyContinue; netstat -ano | findstr ':5432'\" 2>&1)"
+    ]
+  }
+}
