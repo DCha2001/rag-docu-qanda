@@ -1,32 +1,32 @@
-import os
+import logging
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from models.models import Base
-from dotenv import load_dotenv
 
-load_dotenv()
+from core.config import DATABASE_URL
 
-#Database configurations
+logger = logging.getLogger(__name__)
 
-#engine that manages connection pool to the databases (e.g how many connections, when to close them, etc.)
-print("Creating database engine..." )
+# engine that manages connection pool to the databases (e.g how many connections, when to close them, etc.)
 engine = create_engine(
-    os.getenv("DATABASE_URL"), 
+    DATABASE_URL,
     pool_size=10,
     max_overflow=20,
-    echo=True
+    echo=True,
 )
 
-#manages sessions (transactions) with the database, using the engine
+# manages sessions (transactions) with the database, using the engine
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 def init_db():
-    print("Initializing database and creating tables if they don't exist...")
+    logger.info("Initializing database and creating tables if they don't exist...")
     with engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         conn.commit()
     Base.metadata.create_all(bind=engine)
+
 
 # Dependency function to get a database session for each request (used in FastAPI routes)
 def get_db():
