@@ -3,3 +3,6 @@ testdocs/
 __pycache__/
 *.pyc
 .env
+
+.claude/
+.vscode/
