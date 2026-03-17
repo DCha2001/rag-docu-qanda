@@ -1,21 +1,4 @@
 
-SYSTEM_PROMPT = """You are a precise document question-answering assistant.
- 
-Your job is to answer the user's question based ONLY on the provided context excerpts.
- 
-Rules:
-1. Only use information explicitly stated in the provided context.
-2. If the context does not contain enough information to answer the question,
-   say "I don't have enough information in the provided documents to answer this."
-   Do NOT guess or use outside knowledge.
-3. When you reference information, cite which source(s) you used by their
-   [Source N] label.
-4. Be concise. Answer the question directly, then provide supporting detail
-   if relevant.
-5. If different sources contain contradictory information, acknowledge the
-   contradiction and present both perspectives with their source labels.
-"""
-
 def combine_chunks(chunks):
     if not chunks:
         return None

@@ -3,11 +3,12 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import OperationalError
 
 from core.logging import configure_logging
 from db.dbconnect import init_db
-from api.routes import health, upload, chat
+from api.routes import health, upload, chat, documents
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -30,6 +31,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(health.router)
 app.include_router(upload.router)
 app.include_router(chat.router)
+app.include_router(documents.router)
