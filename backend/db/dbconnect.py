@@ -2,7 +2,7 @@ import logging
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from models.models import Base
+from db.models import Base
 
 from core.config import DATABASE_URL
 

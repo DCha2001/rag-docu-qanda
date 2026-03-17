@@ -3,7 +3,7 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 import tempfile, os
 
 from db.dbconnect import get_db
-from models.models import Document, Chunk
+from db.models import Document, Chunk
 from services.ingestion import parse, chunk, embed
 
 router = APIRouter()
