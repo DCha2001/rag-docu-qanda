@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Sidebar, { Doc } from "./components/Sidebar";
 import ChatPanel, { Message } from "./components/ChatPanel";
-
-const API = "http://localhost:8000";
+import { api } from "@/lib/fetchapi";
 
 export default function Home() {
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -14,10 +13,10 @@ export default function Home() {
 
   const fetchDocs = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/documents`);
-      if (res.ok) setDocs(await res.json());
+      const data = await api.documents.list();
+      setDocs(data);
     } catch {
-      // backend not running yet — silently ignore
+      setDocs([])
     }
   }, []);
 
@@ -31,10 +30,7 @@ export default function Home() {
   async function handleUpload(file: File) {
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch(`${API}/ingest`, { method: "POST", body: form });
-      if (!res.ok) throw new Error(await res.text());
+      await api.documents.upload(file);
       await fetchDocs();
     } catch (err) {
       console.error("Upload failed:", err);
@@ -47,10 +43,7 @@ export default function Home() {
     setMessages((prev) => [...prev, { role: "user", text: query }]);
     setChatLoading(true);
     try {
-      const res = await fetch(`${API}/query?query=${encodeURIComponent(query)}`, {
-        method: "POST",
-      });
-      const data = await res.json();
+      const data = await api.query.send(query);
 
       if (data.error) {
         setMessages((prev) => [
@@ -63,8 +56,8 @@ export default function Home() {
       // The API returns content blocks: [{type: "text", text: "..."}]
       const text = Array.isArray(data.response)
         ? data.response
-            .filter((b: { type: string }) => b.type === "text")
-            .map((b: { text: string }) => b.text)
+            .filter((b) => b.type === "text")
+            .map((b) => b.text)
             .join("")
         : String(data.response);
 
