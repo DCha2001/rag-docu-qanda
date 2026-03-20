@@ -9,7 +9,7 @@ from services.augment_utils import combine_chunks, build_user_message
 
 from core.config import CLAUDE_MODEL
 
-log = structlog.get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -34,12 +34,12 @@ Rules:
 
 @router.post("/query")
 def query(query: str, client=Depends(get_anthropic_client), db=Depends(get_db)):
+    log = logger.bind(endpoint="POST /query", query=query, model=CLAUDE_MODEL)
     try:
-        log = log.bind(endpoint="POST /query", query=query, model=CLAUDE_MODEL)
         chunks = search_simliar_chunks(query=query, top_k=5, db=db)
         if "error" in chunks:
             log.error("Error during retrieval", error=chunks["error"])
-            raise HTTPException(status_code=500, detail=chunks["error"])
+            raise
 
         combined_content = combine_chunks(chunks["chunks"])
         user_message = build_user_message(combined_content, query)
@@ -60,21 +60,3 @@ def query(query: str, client=Depends(get_anthropic_client), db=Depends(get_db)):
     except Exception as e:
         log.error(f"Error during query: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/query/health")
-def llm_connection_health(query: str, client=Depends(get_anthropic_client)):
-    try:
-        messages = client.messages.create(
-            max_tokens=1024,
-            messages=[
-                {"role": "user", "content": query}
-            ],
-            model='claude-haiku-4-5-20251001'
-        )
-
-        log.info(f"Received response: {messages.usage}")
-        return {"response": messages.content}
-    except Exception as e:
-        log.warning(f"Error during query: {e}")
-        return {"error": str(e)}

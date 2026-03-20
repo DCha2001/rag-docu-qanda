@@ -10,11 +10,11 @@ from services.ingestion import parse, chunk, embed
 
 router = APIRouter()
 
-log = structlog.get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 @router.post("/ingest")
 async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
-    log = log.bing(endpoint="POST /ingest", filename=file.filename)
+    log = logger.bind(endpoint="POST /ingest", filename=file.filename)
 
     log.info("Starting document ingestion")
 
