@@ -1,6 +1,6 @@
-import logging
+import structlog
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from core.client import get_anthropic_client
 from db.dbconnect import get_db
@@ -9,7 +9,7 @@ from services.augment_utils import combine_chunks, build_user_message
 
 from core.config import CLAUDE_MODEL
 
-logger = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -35,14 +35,16 @@ Rules:
 @router.post("/query")
 def query(query: str, client=Depends(get_anthropic_client), db=Depends(get_db)):
     try:
+        log = log.bind(endpoint="POST /query", query=query, model=CLAUDE_MODEL)
         chunks = search_simliar_chunks(query=query, top_k=5, db=db)
         if "error" in chunks:
-            return {"error": chunks["error"]}
+            log.error("Error during retrieval", error=chunks["error"])
+            raise HTTPException(status_code=500, detail=chunks["error"])
 
         combined_content = combine_chunks(chunks["chunks"])
         user_message = build_user_message(combined_content, query)
 
-        logger.debug(user_message)
+        log.debug(user_message)
 
         messages = client.messages.create(
             max_tokens=1024,
@@ -53,11 +55,11 @@ def query(query: str, client=Depends(get_anthropic_client), db=Depends(get_db)):
             model=CLAUDE_MODEL
         )
 
-        logger.info(f"Received response: {messages.usage}")
+        log.info(f"Received response: {messages.usage}")
         return {"response": messages.content}
     except Exception as e:
-        logger.warning(f"Error during query: {e}")
-        return {"error": str(e)}
+        log.error(f"Error during query: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/query/health")
@@ -71,8 +73,8 @@ def llm_connection_health(query: str, client=Depends(get_anthropic_client)):
             model='claude-haiku-4-5-20251001'
         )
 
-        logger.info(f"Received response: {messages.usage}")
+        log.info(f"Received response: {messages.usage}")
         return {"response": messages.content}
     except Exception as e:
-        logger.warning(f"Error during query: {e}")
+        log.warning(f"Error during query: {e}")
         return {"error": str(e)}
