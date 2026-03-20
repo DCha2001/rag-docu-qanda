@@ -1,0 +1,25 @@
+# Web framework
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Database
+sqlalchemy
+psycopg2-binary
+pgvector
+alembic
+
+# Document parsing & chunking
+unstructured[local-inference]
+
+# Embeddings
+sentence-transformers
+
+# AI
+anthropic
+
+# Logging
+structlog
+
+# Config
+python-dotenv

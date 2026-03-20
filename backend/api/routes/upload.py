@@ -78,6 +78,7 @@ async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
         db.rollback()
         doc.status = "failed"
         db.commit()
+        log.error("Error during document ingestion", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         os.unlink(tmp_path)
