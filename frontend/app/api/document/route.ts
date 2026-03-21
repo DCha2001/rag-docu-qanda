@@ -4,6 +4,8 @@ import { backend } from "@/lib/backend";
 export async function GET() {
   try {
     const docs = await backend.documents.list();
+
+    
     return NextResponse.json(docs);
   } catch (err) {
     console.error("Failed to fetch documents:", err);

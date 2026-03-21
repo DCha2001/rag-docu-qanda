@@ -9,11 +9,13 @@ import type { QueryResponse } from "@/app/models/query";
 async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);
   if (!res.ok) {
-    throw new ApiError(
-      res.status,
-      res.statusText,
-      `Request failed: ${res.status} ${res.statusText}`
-    );
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      if (body?.detail) detail = body.detail;
+      else if (body?.error) detail = body.error;
+    } catch {}
+    throw new ApiError(res.status, res.statusText, `${res.status}: ${detail}`);
   }
   return res.json();
 }

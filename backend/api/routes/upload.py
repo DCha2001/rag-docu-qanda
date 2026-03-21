@@ -4,9 +4,13 @@ import asyncio
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 import tempfile, os
 
+from sqlalchemy import text
+
 from db.dbconnect import get_db
 from db.models import Document, Chunk
 from services.ingestion import parse, chunk, embed
+
+from utils.hash import generate_hash
 
 router = APIRouter()
 
@@ -19,9 +23,10 @@ async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
     log.info("Starting document ingestion")
 
     try:
+        file_read = await file.read()
         suffix = os.path.splitext(file.filename)[1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(await file.read())
+            tmp.write(file_read)
             tmp_path = tmp.name
     except Exception as e:
         log.error("Failed to save uploaded file", error=str(e))
@@ -29,8 +34,20 @@ async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
 
     log.info("File saved successfully, starting processing", temp_path=tmp_path)
 
+    doc = None
     try:
-        doc = Document(filename=file.filename)
+        file_hash = generate_hash(file_read)
+
+        # Check for existing document with this hash
+        existing = db.execute(
+            text("SELECT id, filename FROM documents WHERE file_hash = :hash"),
+            {"hash": file_hash}
+        ).fetchone()
+
+        if existing:
+            log.error("Duplicate document detected, skipping ingestion", existing_id=existing.id, existing_filename=existing.filename)
+            raise HTTPException(status_code=400, detail=f"Document already ingested as '{existing.filename}'")
+        doc = Document(filename=file.filename, file_hash=file_hash)
         db.add(doc)
         db.commit()
         db.refresh(doc) # This allows us to communicate foreign keys or etc. back to the database to ensure data is up to date
@@ -74,10 +91,13 @@ async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
         log.info("All chunks added to database session, committing", chunk_count=len(chunks))
 
         return doc
+    except HTTPException as e:
+        raise e
     except Exception as e:
         db.rollback()
-        doc.status = "failed"
-        db.commit()
+        if doc is not None:
+            doc.status = "failed"
+            db.commit()
         log.error("Error during document ingestion", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
     finally:

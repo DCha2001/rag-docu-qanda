@@ -23,8 +23,8 @@ export default function Home() {
   // Poll documents every 3s to pick up in-progress status changes
   useEffect(() => {
     fetchDocs();
-    const id = setInterval(fetchDocs, 3000);
-    return () => clearInterval(id);
+    // const id = setInterval(fetchDocs, 3000);
+    // return () => clearInterval(id);
   }, [fetchDocs]);
 
   async function handleDelete(id: string) {

@@ -24,13 +24,13 @@ def delete_document(id: str, db=Depends(get_db)):
         db.commit()
         log.info("delete_document.success")
         return {"detail": "Document deleted successfully"}
-    except HTTPException:
-        return HTTPException(status_code=404, detail="Document not found")
+    except HTTPException as e:
+        raise e
     except Exception as e:
         log.error("delete_document.db_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to delete document")
 
-@router.get("/documents")
+@router.get("/document/list") # refactor later. (make a list variety and an individual variety e.g document/list)
 def list_documents(db=Depends(get_db)):
     log = logger.bind(endpoint="GET /document")
     log.info("list_documents.started")

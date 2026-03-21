@@ -39,7 +39,7 @@ def query(query: str, client=Depends(get_anthropic_client), db=Depends(get_db)):
         chunks = search_simliar_chunks(query=query, top_k=5, db=db)
         if "error" in chunks:
             log.error("Error during retrieval", error=chunks["error"])
-            raise
+            raise HTTPException(status_code=500, detail=chunks["error"])
 
         combined_content = combine_chunks(chunks["chunks"])
         user_message = build_user_message(combined_content, query)
@@ -55,8 +55,10 @@ def query(query: str, client=Depends(get_anthropic_client), db=Depends(get_db)):
             model=CLAUDE_MODEL
         )
 
-        log.info(f"Received response: {messages.usage}")
+        log.info("query.response", usage=str(messages.usage))
         return {"response": messages.content}
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        log.error(f"Error during query: {e}")
+        log.error("query.error", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
