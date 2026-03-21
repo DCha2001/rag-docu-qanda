@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -34,9 +34,10 @@ interface SidebarProps {
   docs: Doc[];
   uploading: boolean;
   onUpload: (file: File) => void;
+  onDelete: (id: string) => void;
 }
 
-export default function Sidebar({ docs, uploading, onUpload }: SidebarProps) {
+export default function Sidebar({ docs, uploading, onUpload, onDelete }: SidebarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -106,7 +107,7 @@ export default function Sidebar({ docs, uploading, onUpload }: SidebarProps) {
                 return (
                   <li
                     key={doc.id}
-                    className="rounded-lg bg-background px-3 py-2.5 border border-border hover:bg-muted/50 transition-colors"
+                    className="group rounded-lg bg-background px-3 py-2.5 border border-border hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-start gap-2.5">
                       <span
@@ -136,6 +137,13 @@ export default function Sidebar({ docs, uploading, onUpload }: SidebarProps) {
                           )}
                         </div>
                       </div>
+                      <button
+                        onClick={() => onDelete(doc.id)}
+                        className="ml-auto flex-shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                        aria-label="Delete document"
+                      >
+                        <X className="size-3.5" />
+                      </button>
                     </div>
                   </li>
                 );

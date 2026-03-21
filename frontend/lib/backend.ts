@@ -30,6 +30,8 @@ export const backend = {
       form.append("file", file);
       return fetchBackend<IngestResponse>("/ingest", { method: "POST", body: form });
     },
+    delete: (id: string): Promise<void> =>
+      fetchBackend<void>(`/document?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
   },
 
   query: {
@@ -42,6 +44,6 @@ export const backend = {
 
   health: {
     ping: (): Promise<{ status: string }> =>
-      fetchBackend<{ status: string }>("/ping"),
+      fetchBackend<{ status: string }>("/health"),
   },
 };

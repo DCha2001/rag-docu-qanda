@@ -28,6 +28,8 @@ export const api = {
       form.append("file", file);
       return fetchApi<IngestResponse>("/api/document", { method: "POST", body: form });
     },
+    delete: (id: string): Promise<void> =>
+      fetchApi<void>(`/api/document?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
   },
 
   query: {

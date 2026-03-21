@@ -27,6 +27,15 @@ export default function Home() {
     return () => clearInterval(id);
   }, [fetchDocs]);
 
+  async function handleDelete(id: string) {
+    try {
+      await api.documents.delete(id);
+      await fetchDocs();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  }
+
   async function handleUpload(file: File) {
     setUploading(true);
     try {
@@ -77,7 +86,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar docs={docs} uploading={uploading} onUpload={handleUpload} />
+      <Sidebar docs={docs} uploading={uploading} onUpload={handleUpload} onDelete={handleDelete} />
       <ChatPanel
         messages={messages}
         loading={chatLoading}

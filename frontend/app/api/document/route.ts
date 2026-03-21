@@ -11,6 +11,20 @@ export async function GET() {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  const id = request.nextUrl.searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  }
+  try {
+    await backend.documents.delete(id);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Failed to delete document:", err);
+    return NextResponse.json({ error: "Failed to delete document" }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

@@ -9,9 +9,30 @@ router = APIRouter()
 
 logger = structlog.get_logger(__name__)
 
+@router.delete("/document")
+def delete_document(id: str, db=Depends(get_db)):
+    log = logger.bind(endpoint="DELETE /document", document_id=id)
+    log.info("delete_document.started")
+
+    try:
+        doc = db.query(Document).filter(Document.id == id).first()
+        if not doc:
+            log.warning("delete_document.not_found")
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        db.delete(doc)
+        db.commit()
+        log.info("delete_document.success")
+        return {"detail": "Document deleted successfully"}
+    except HTTPException:
+        return HTTPException(status_code=404, detail="Document not found")
+    except Exception as e:
+        log.error("delete_document.db_error", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to delete document")
+
 @router.get("/documents")
 def list_documents(db=Depends(get_db)):
-    log = logger.bind(endpoint="GET /documents")
+    log = logger.bind(endpoint="GET /document")
     log.info("list_documents.started")
 
     try:
