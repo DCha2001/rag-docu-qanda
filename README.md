@@ -48,18 +48,23 @@ AIDocuReader/
 │   │   ├── retrieval.py         # pgvector similarity search
 │   │   └── augment_utils.py     # RAG prompt construction
 │   └── api/routes/
-│       ├── health.py            # GET /ping
+│       ├── health.py            # GET /health
 │       ├── upload.py            # POST /ingest
 │       ├── chat.py              # POST /query
-│       └── documents.py         # GET /documents
+│       ├── documents.py         # GET /document/list, DELETE /document
+│       └── metrics.py           # GET /metrics/chunks
 ├── frontend/
-│   ├── app/
-│   │   ├── page.tsx             # Main page (upload + chat)
-│   │   └── components/
-│   │       ├── Sidebar.tsx      # Document list + upload
-│   │       └── ChatPanel.tsx    # Chat interface
-│   └── lib/
-│       └── fetchapi.ts          # Typed API client
+│   └── app/
+│       ├── page.tsx             # Main page (upload + chat)
+│       ├── components/
+│       │   ├── Sidebar.tsx      # Document list + upload
+│       │   └── ChatPanel.tsx    # Chat interface
+│       ├── api/
+│       │   ├── document/route.ts  # Proxies document list/delete to backend
+│       │   └── query/route.ts     # Proxies query to backend
+│       └── models/
+│           ├── documents.ts     # Document type definitions
+│           └── query.ts         # Query/response type definitions
 └── docker-compose.yml
 ```
 
@@ -105,10 +110,12 @@ The app will be available at `http://localhost:3000`.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/ping` | Health check |
+| `GET` | `/health` | Health check (includes DB connectivity) |
 | `POST` | `/ingest` | Upload and process a document |
-| `GET` | `/documents` | List all documents |
+| `GET` | `/document/list` | List all documents (ordered by creation date) |
+| `DELETE` | `/document` | Delete a document and its chunks by ID |
 | `POST` | `/query` | Ask a question against ingested documents |
+| `GET` | `/metrics/chunks` | Chunk quality stats for a given document |
 
 ---
 
@@ -120,4 +127,35 @@ The app will be available at `http://localhost:3000`.
 
 **RAG prompt structure** — context chunks are wrapped in XML tags (`<context>`, `<question>`) following Anthropic's prompt engineering guidelines. Claude is instructed to cite sources by `[Source N]` label and refuse to answer outside the provided context.
 
+**Duplicate detection** — files are SHA-256 hashed on upload. If a matching hash already exists in the database, ingestion is rejected with a `400` before any processing begins.
+
 **Structured logging** — `structlog` is used throughout with key-value structured events (e.g. `document_id`, `chunk_count`, `error`) for machine-parseable logs in production and colorized output in development.
+
+**Chunk metrics** — the `/metrics/chunks` endpoint exposes per-document statistics (count, mean/min/max length, short and long chunk counts) useful for evaluating chunking quality.
+
+---
+
+## Tests
+
+Tests live in `backend/tests/` and use `pytest`.
+
+```
+backend/tests/
+├── conftest.py           # TestClient + mock DB fixtures
+├── test.py               # Unit + integration tests (services, endpoints)
+└── rag_test/
+    └── test_rag_eval.py  # RAG evaluation tests
+```
+
+Coverage includes:
+- `combine_chunks` / `build_user_message` (RAG prompt construction)
+- `embed` output shape and dtype
+- `GET /health` (ok + DB error paths)
+- `POST /query` (success, retrieval error, missing param)
+- `POST /ingest` (missing file, duplicate rejection)
+
+Run tests:
+```bash
+cd backend
+pytest tests/
+```
