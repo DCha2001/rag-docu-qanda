@@ -1,0 +1,4 @@
+question,grading_notes
+"What is LayoutParser?","Response should define LayoutParser as an open-source Python library for document layout analysis. Should cite at least one [Source N] label. Should not include information beyond what the retrieved context states."
+"What are the main components of LayoutParser?","Response should mention components such as a layout detection model zoo, unified data structure, OCR modules, and visualization or storage utilities. Should cite sources using [Source N] labels. Should not guess or add details absent from the context."
+"What deep learning models does LayoutParser support?","Response should mention models such as Faster RCNN or Mask RCNN and reference Detectron2. Should include at least one [Source N] citation. Should only state what is explicitly in the provided context."

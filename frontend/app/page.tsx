@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import Sidebar, { Doc } from "./components/Sidebar";
 import ChatPanel, { Message } from "./components/ChatPanel";
 import { api } from "@/lib/fetchapi";
@@ -15,8 +16,9 @@ export default function Home() {
     try {
       const data = await api.documents.list();
       setDocs(data);
-    } catch {
-      setDocs([])
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load documents");
+      setDocs([]);
     }
   }, []);
 
@@ -32,7 +34,7 @@ export default function Home() {
       await api.documents.delete(id);
       await fetchDocs();
     } catch (err) {
-      console.error("Delete failed:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete document");
     }
   }
 
@@ -42,7 +44,7 @@ export default function Home() {
       await api.documents.upload(file);
       await fetchDocs();
     } catch (err) {
-      console.error("Upload failed:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to upload document");
     } finally {
       setUploading(false);
     }
@@ -72,11 +74,11 @@ export default function Home() {
 
       setMessages((prev) => [...prev, { role: "assistant", text }]);
     } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reach the server");
       setMessages((prev) => [
         ...prev,
         { role: "assistant", text: "Failed to reach the server." },
       ]);
-      console.error(err);
     } finally {
       setChatLoading(false);
     }
