@@ -4,12 +4,17 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from db.dbconnect import get_db
 from db.models import Document
+from schemas.documents import DocumentResponse, MessageResponse
 
 router = APIRouter()
 
 logger = structlog.get_logger(__name__)
 
-@router.delete("/document")
+# response_model=MessageResponse tells FastAPI: validate the return value
+# against MessageResponse and use it to generate /docs documentation.
+# If your function accidentally returns {"detial": "..."} (typo), FastAPI
+# will catch it at runtime rather than silently sending wrong JSON.
+@router.delete("/document", response_model=MessageResponse)
 def delete_document(id: str, db=Depends(get_db)):
     log = logger.bind(endpoint="DELETE /document", document_id=id)
     log.info("delete_document.started")
@@ -30,7 +35,10 @@ def delete_document(id: str, db=Depends(get_db)):
         log.error("delete_document.db_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to delete document")
 
-@router.get("/document/list") # refactor later. (make a list variety and an individual variety e.g document/list)
+# list[DocumentResponse] means FastAPI expects a list where every item
+# matches the DocumentResponse schema. It will serialize each Document
+# ORM object automatically because DocumentResponse has from_attributes=True.
+@router.get("/document/list", response_model=list[DocumentResponse])
 def list_documents(db=Depends(get_db)):
     log = logger.bind(endpoint="GET /document")
     log.info("list_documents.started")
@@ -43,13 +51,8 @@ def list_documents(db=Depends(get_db)):
 
     log.info("list_documents.success", count=len(docs))
 
-    return [
-        {
-            "id": doc.id,
-            "filename": doc.filename,
-            "status": doc.status,
-            "chunk_count": doc.chunk_count,
-            "created_at": doc.created_at.isoformat() if doc.created_at else None,
-        }
-        for doc in docs
-    ]
+    # Before schemas: we had to manually build a dict for each doc.
+    # Now we return the ORM objects directly. Pydantic reads the attributes
+    # off each Document instance because DocumentResponse has from_attributes=True.
+    # FastAPI handles serialization (including the datetime → ISO string conversion).
+    return docs

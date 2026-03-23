@@ -11,12 +11,17 @@ from db.models import Document, Chunk
 from services.ingestion import parse, chunk, embed
 
 from utils.hash import generate_hash
+from schemas.documents import DocumentResponse
 
 router = APIRouter()
 
 logger = structlog.get_logger(__name__)
 
-@router.post("/ingest")
+# The ingest endpoint already returns a Document ORM object (`return doc`).
+# Adding response_model=DocumentResponse means FastAPI will validate that
+# object against our schema and serialize it — no code change needed inside
+# the function body. The schema does the work.
+@router.post("/ingest", response_model=DocumentResponse)
 async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
     log = logger.bind(endpoint="POST /ingest", filename=file.filename)
 

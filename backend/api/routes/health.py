@@ -5,11 +5,16 @@ from db.dbconnect import get_db
 
 from sqlalchemy import text
 
+from schemas.health import HealthResponse
+
 router = APIRouter()
 
 logger = structlog.get_logger(__name__)
 
-@router.get("/health")
+# `response_model=HealthResponse` does two things:
+#   1. FastAPI validates your return value against the schema before sending it
+#   2. The /docs UI shows the exact response shape for this endpoint
+@router.get("/health", response_model=HealthResponse)
 async def ping(db=Depends(get_db)):
     log = logger.bind(endpoint="GET /health")
     try:

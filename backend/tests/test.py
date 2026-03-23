@@ -101,6 +101,9 @@ def test_health_db_error(client, mock_db):
 # ─── POST /query ───────────────────────────────────────────────────────────────
 
 def test_query_returns_response(client):
+    # Query is now a JSON body (QueryRequest), not a URL param.
+    # client.post(..., json={...}) sets Content-Type: application/json
+    # and Pydantic validates the body before the route function runs.
     mock_chunks = {
         "chunks": [
             {
@@ -113,7 +116,7 @@ def test_query_returns_response(client):
         ]
     }
     with patch("api.routes.chat.search_simliar_chunks", return_value=mock_chunks):
-        resp = client.post("/query?query=What+is+Paris")
+        resp = client.post("/query", json={"query": "What is Paris?"})
 
     assert resp.status_code == 200
     assert "response" in resp.json()
@@ -122,14 +125,21 @@ def test_query_returns_response(client):
 def test_query_retrieval_error_returns_500(client):
     mock_error = {"error": "pgvector extension not found"}
     with patch("api.routes.chat.search_simliar_chunks", return_value=mock_error):
-        resp = client.post("/query?query=anything")
+        resp = client.post("/query", json={"query": "anything"})
 
     assert resp.status_code == 500
     assert "pgvector" in resp.json()["detail"]
 
 
 def test_query_missing_param(client):
-    resp = client.post("/query")
+    # Empty body → Pydantic validation fails → 422 Unprocessable Entity
+    resp = client.post("/query", json={})
+    assert resp.status_code == 422
+
+
+def test_query_empty_string_rejected(client):
+    # min_length=1 on QueryRequest.query means empty string is invalid
+    resp = client.post("/query", json={"query": ""})
     assert resp.status_code == 422
 
 
