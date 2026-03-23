@@ -25,6 +25,10 @@ logger = structlog.get_logger(__name__)
 async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
     log = logger.bind(endpoint="POST /ingest", filename=file.filename)
 
+    if (file.size is not None) and (file.size > 50 * 1024 * 1024):
+        log.warning("File size exceeds limit", file_size=file.size)
+        raise HTTPException(status_code=400, detail="File size exceeds 50MB limit")
+
     log.info("Starting document ingestion")
 
     try:

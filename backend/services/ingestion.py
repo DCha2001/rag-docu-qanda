@@ -22,4 +22,4 @@ def chunk(elements: list) -> list:
 
 def embed(chunks: list) -> list[list[float]]:
     texts = [chunk.text for chunk in chunks]
-    return _get_model().encode(texts, show_progress_bar=False).tolist()
+    return _get_model().encode(texts, batch_size=64, show_progress_bar=True).tolist()
