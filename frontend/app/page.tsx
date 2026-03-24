@@ -33,6 +33,7 @@ export default function Home() {
     try {
       await api.documents.delete(id);
       await fetchDocs();
+      toast.success("Document deleted");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete document");
     }
@@ -43,6 +44,7 @@ export default function Home() {
     try {
       await api.documents.upload(file);
       await fetchDocs();
+      toast.success("Document uploaded successfully");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to upload document");
     } finally {
@@ -57,6 +59,7 @@ export default function Home() {
       const data = await api.query.send(query);
 
       if (data.error) {
+        toast.error(data.error);
         setMessages((prev) => [
           ...prev,
           { role: "assistant", text: `Error: ${data.error}` },

@@ -8,6 +8,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
   } catch (err) {
     console.error("Query failed:", err);
-    return NextResponse.json({ error: "Query failed" }, { status: 500 });
+    return NextResponse.json({ error: `Query failed ${err}` }, { status: 500 });
   }
 }

@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json(docs);
   } catch (err) {
     console.error("Failed to fetch documents:", err);
-    return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 });
+    return NextResponse.json({ error: `Failed to fetch documents ${err}` }, { status: 500 });
   }
 }
 
@@ -23,7 +23,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Failed to delete document:", err);
-    return NextResponse.json({ error: "Failed to delete document" }, { status: 500 });
+    return NextResponse.json({ error: `Failed to delete document ${err}` }, { status: 500 });
   }
 }
 
@@ -34,6 +34,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(doc);
   } catch (err) {
     console.error("Failed to upload document:", err);
-    return NextResponse.json({ error: "Failed to upload document" }, { status: 500 });
+    return NextResponse.json({ error: `Failed to upload document ${err}` }, { status: 500 });
   }
 }

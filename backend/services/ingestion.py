@@ -1,6 +1,10 @@
+import threading
+
 from unstructured.partition.auto import partition
 from unstructured.chunking.title import chunk_by_title
 from sentence_transformers import SentenceTransformer
+
+from utils.cancellation import IngestionCancelledError
 
 _model: SentenceTransformer | None = None
 
@@ -20,6 +24,19 @@ def chunk(elements: list) -> list:
     return chunk_by_title(elements)
 
 
-def embed(chunks: list) -> list[list[float]]:
-    texts = [chunk.text for chunk in chunks]
-    return _get_model().encode(texts, batch_size=64, show_progress_bar=True).tolist()
+def embed(chunks: list, cancel: threading.Event | None = None) -> list[list[float]]:
+    model = _get_model()
+    texts = [c.text for c in chunks]
+    batch_size = 64
+    vectors = []
+
+    #reimplemented batching logic to check for cancelation between batches.
+    for i in range(0, len(texts), batch_size):
+        if cancel and cancel.is_set():
+            raise IngestionCancelledError("Embedding cancelled — document was deleted")
+
+        batch = texts[i : i + batch_size]
+        batch_vectors = model.encode(batch, show_progress_bar=False).tolist()
+        vectors.extend(batch_vectors)
+
+    return vectors

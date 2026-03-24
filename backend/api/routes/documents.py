@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from db.dbconnect import get_db
 from db.models import Document
 from schemas.documents import DocumentResponse, MessageResponse
+import utils.cancellation as cancellation
 
 router = APIRouter()
 
@@ -24,6 +25,15 @@ def delete_document(id: str, db=Depends(get_db)):
         if not doc:
             log.warning("delete_document.not_found")
             raise HTTPException(status_code=404, detail="Document not found")
+
+        # Signal the ingestion pipeline (if running) to stop at the next
+        # batch boundary. The pipeline will notice the event is set, raise
+        # IngestionCancelledError, and clean itself up. We delete the DB
+        # record immediately — the pipeline's finally block handles its own
+        # cleanup (temp file, registry deregistration).
+        was_processing = cancellation.signal(id)
+        if was_processing:
+            log.info("delete_document.cancellation_signalled", document_id=id)
 
         db.delete(doc)
         db.commit()

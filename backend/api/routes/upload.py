@@ -11,6 +11,8 @@ from db.models import Document, Chunk
 from services.ingestion import parse, chunk, embed
 
 from utils.hash import generate_hash
+from utils.cancellation import IngestionCancelledError
+import utils.cancellation as cancellation
 from schemas.documents import DocumentResponse
 
 router = APIRouter()
@@ -79,7 +81,8 @@ async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
         log.info("Starting embedding", document_id=doc.id)
         doc.status = "embedding"
         db.commit()
-        vectors = await asyncio.to_thread(embed, chunks)
+        cancel_event = cancellation.register(str(doc.id))
+        vectors = await asyncio.to_thread(embed, chunks, cancel_event)
         log.info("Embedding completed", document_id=doc.id)
 
         for i, (chunk_el, vector) in enumerate(zip(chunks, vectors)):
@@ -102,6 +105,13 @@ async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
         return doc
     except HTTPException as e:
         raise e
+    except IngestionCancelledError:
+        # The document was deleted mid-pipeline. The DB record is already gone
+        # so we must NOT attempt to update doc.status — that would error.
+        # db.rollback() discards the unsaved chunks from the session cleanly.
+        db.rollback()
+        log.info("Ingestion cancelled — document was deleted mid-pipeline", document_id=doc.id if doc else None)
+        raise HTTPException(status_code=409, detail="Document was deleted while processing")
     except Exception as e:
         db.rollback()
         if doc is not None:
@@ -110,4 +120,6 @@ async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
         log.error("Error during document ingestion", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
     finally:
+        if doc is not None:
+            cancellation.deregister(str(doc.id))
         os.unlink(tmp_path)
