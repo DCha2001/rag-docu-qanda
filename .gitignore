@@ -7,5 +7,7 @@ __pycache__/
 .claude/
 .vscode/
 
+CLAUDE.md
+
 # Learning notes — local only, not tracked in version control
 backend/schemas/*.txt
