@@ -16,6 +16,7 @@ export interface Doc {
   status: string;
   chunk_count: number;
   created_at: string | null;
+  is_demo?: boolean;
 }
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
@@ -193,7 +194,7 @@ export default function Sidebar({
               type="file"
               className="hidden"
               onChange={handleFileChange}
-              accept=".pdf,.docx,.txt,.md,.csv,.xlsx,.pptx"
+              accept=".pdf,.docx,.txt,.md,.html,.xlsx"
             />
             <Button
               variant="ghost"
@@ -255,6 +256,11 @@ export default function Sidebar({
                                 >
                                   {doc.status}
                                 </Badge>
+                                {doc.is_demo && (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-400 text-amber-600">
+                                    Demo
+                                  </Badge>
+                                )}
                                 {doc.status === "completed" && (
                                   <span className="text-[10px] text-muted-foreground">
                                     {doc.chunk_count} chunks
@@ -263,13 +269,15 @@ export default function Sidebar({
                                 {inProgress && <Skeleton className="h-1.5 w-10" />}
                               </div>
                             </div>
-                            <button
-                              onClick={() => onDetachDoc(doc.id)}
-                              className="ml-auto flex-shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                              aria-label="Remove from session"
-                            >
-                              <X className="size-3" />
-                            </button>
+                            {!doc.is_demo && (
+                              <button
+                                onClick={() => onDetachDoc(doc.id)}
+                                className="ml-auto flex-shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                                aria-label="Remove from session"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            )}
                           </div>
                         </li>
                       );
@@ -363,6 +371,11 @@ export default function Sidebar({
                             </p>
                             <div className="mt-1.5 flex items-center gap-2">
                               <Badge variant={variant}>{doc.status}</Badge>
+                              {doc.is_demo && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-400 text-amber-600">
+                                  Demo
+                                </Badge>
+                              )}
                               {doc.status === "completed" && (
                                 <span className="text-[10px] text-muted-foreground">
                                   {doc.chunk_count} chunks
@@ -371,13 +384,15 @@ export default function Sidebar({
                               {inProgress && <Skeleton className="h-2 w-12" />}
                             </div>
                           </div>
-                          <button
-                            onClick={() => onDeleteDoc(doc.id)}
-                            className="ml-auto flex-shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                            aria-label="Delete document"
-                          >
-                            <X className="size-3.5" />
-                          </button>
+                          {!doc.is_demo && (
+                            <button
+                              onClick={() => onDeleteDoc(doc.id)}
+                              className="ml-auto flex-shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                              aria-label="Delete document"
+                            >
+                              <X className="size-3.5" />
+                            </button>
+                          )}
                         </div>
                       </li>
                     );

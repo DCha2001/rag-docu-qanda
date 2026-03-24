@@ -1,6 +1,7 @@
 import structlog
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from core.limiter import limiter
 
 from core.client import get_anthropic_client
 from db.dbconnect import get_db
@@ -25,8 +26,8 @@ Rules:
 2. If the context does not contain enough information to answer the question,
    say "I don't have enough information in the provided documents to answer this."
    Do NOT guess or use outside knowledge.
-3. When you reference information, cite which source(s) you used by their
-   [Source N] label.
+3. When you reference information, cite which document(s) you used by their
+    filename.
 4. Be concise. Answer the question directly, then provide supporting detail
    if relevant.
 5. If different sources contain contradictory information, acknowledge the
@@ -49,7 +50,8 @@ Rules:
 # response_model=QueryResponse tells FastAPI to validate and serialize the
 # return value. The Anthropic SDK TextBlock objects are read via from_attributes.
 @router.post("/query", response_model=QueryResponse)
-def query(body: QueryRequest, client=Depends(get_anthropic_client), db=Depends(get_db)):
+@limiter.limit("20/minute")
+def query(request: Request, body: QueryRequest, client=Depends(get_anthropic_client), db=Depends(get_db)):
     log = logger.bind(endpoint="POST /query", query=body.query, model=CLAUDE_MODEL)
     try:
         # Verify session exists

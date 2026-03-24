@@ -13,6 +13,7 @@ export interface DocumentResponse {
   status: DocumentStatus;
   chunk_count: number;
   created_at: string | null;
+  is_demo?: boolean;
 }
 
 /** Shape returned by POST /ingest (full ORM object) */

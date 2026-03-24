@@ -9,6 +9,7 @@ class DocumentResponse(BaseModel):
     status: str
     chunk_count: int
     created_at: Optional[datetime] = None
+    is_demo: bool = False
 
     model_config = {"from_attributes": True}
 

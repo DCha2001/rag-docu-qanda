@@ -1,13 +1,18 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import OperationalError
 
 from core.logging import configure_logging
-from db.dbconnect import init_db
+from core.limiter import limiter
+from db.dbconnect import init_db, SessionLocal
+from scripts.seed_demo import seed_demo_documents
 from api.routes import health, upload, chat, documents, metrics, sessions
 
 configure_logging()
@@ -26,14 +31,27 @@ async def lifespan(app: FastAPI):
             await asyncio.sleep(2)
     else:
         raise RuntimeError("Could not connect to the database after 10 attempts.")
+
+    db = SessionLocal()
+    try:
+        await seed_demo_documents(db)
+    finally:
+        db.close()
+
     yield
 
 
 app = FastAPI(lifespan=lifespan)
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+origins_env = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://frontend:3000")
+allowed_origins = [o.strip() for o in origins_env.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://frontend:3000"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

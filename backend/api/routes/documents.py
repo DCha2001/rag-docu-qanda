@@ -26,6 +26,9 @@ def delete_document(id: str, db=Depends(get_db)):
             log.warning("delete_document.not_found")
             raise HTTPException(status_code=404, detail="Document not found")
 
+        if doc.is_demo:
+            raise HTTPException(status_code=403, detail="Demo documents cannot be deleted.")
+
         # Signal the ingestion pipeline (if running) to stop at the next
         # batch boundary. The pipeline will notice the event is set, raise
         # IngestionCancelledError, and clean itself up. We delete the DB

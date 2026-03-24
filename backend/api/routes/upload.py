@@ -1,7 +1,9 @@
 import structlog
 
 import asyncio
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from pathlib import Path
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Request
+from core.limiter import limiter
 import tempfile, os
 
 from sqlalchemy import text
@@ -19,22 +21,35 @@ router = APIRouter()
 
 logger = structlog.get_logger(__name__)
 
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".html", ".xlsx"}
+
 # The ingest endpoint already returns a Document ORM object (`return doc`).
 # Adding response_model=DocumentResponse means FastAPI will validate that
 # object against our schema and serialize it — no code change needed inside
 # the function body. The schema does the work.
 @router.post("/ingest", response_model=DocumentResponse)
-async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
+@limiter.limit("5/minute")
+async def ingest(request: Request, file: UploadFile = File(...), db=Depends(get_db)):
     log = logger.bind(endpoint="POST /ingest", filename=file.filename)
 
     if (file.size is not None) and (file.size > 50 * 1024 * 1024):
         log.warning("File size exceeds limit", file_size=file.size)
         raise HTTPException(status_code=400, detail="File size exceeds 50MB limit")
 
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        allowed_str = ", ".join(e.lstrip(".") for e in sorted(ALLOWED_EXTENSIONS))
+        raise HTTPException(status_code=400, detail=f"Unsupported file type '{ext}'. Allowed: {allowed_str}")
+
     log.info("Starting document ingestion")
 
     try:
         file_read = await file.read()
+
+        if ext == ".pdf" and not file_read.startswith(b"%PDF"):
+            raise HTTPException(status_code=400, detail="File does not appear to be a valid PDF.")
+        if ext == ".docx" and not file_read.startswith(b"PK\x03\x04"):
+            raise HTTPException(status_code=400, detail="File does not appear to be a valid DOCX.")
         suffix = os.path.splitext(file.filename)[1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(file_read)

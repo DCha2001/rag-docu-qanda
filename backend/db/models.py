@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import String, Integer, Text, DateTime, ForeignKey
+from sqlalchemy import String, Integer, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
 
@@ -50,6 +50,7 @@ class Document(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc)
     )
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationship: one document has many chunks.
     # cascade="all, delete-orphan" means if you delete a document,
