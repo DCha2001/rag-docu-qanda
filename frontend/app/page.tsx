@@ -211,7 +211,7 @@ export default function Home() {
   const hasDocuments = sessionDocs.some((d) => d.status === "completed");
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen bg-background">
       <Sidebar
         sessions={sessions}
         activeSessionId={activeSessionId}

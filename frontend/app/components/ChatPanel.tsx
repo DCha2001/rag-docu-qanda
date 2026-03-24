@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Send, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { SessionResponse } from "@/app/models/session";
 
@@ -29,10 +28,11 @@ export default function ChatPanel({
   activeSession,
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
 
   function handleSubmit(e: React.FormEvent) {
@@ -76,7 +76,7 @@ export default function ChatPanel({
       )}
 
       {/* Messages */}
-      <ScrollArea className="flex-1">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
         <div className="flex flex-col gap-4 px-6 py-6">
           {messages.length === 0 && (
             <div className="flex h-full min-h-[60vh] items-center justify-center">
@@ -131,9 +131,8 @@ export default function ChatPanel({
             </div>
           )}
 
-          <div ref={bottomRef} />
         </div>
-      </ScrollArea>
+      </div>
 
       <Separator />
 
