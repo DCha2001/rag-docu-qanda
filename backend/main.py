@@ -8,7 +8,7 @@ from sqlalchemy.exc import OperationalError
 
 from core.logging import configure_logging
 from db.dbconnect import init_db
-from api.routes import health, upload, chat, documents, metrics
+from api.routes import health, upload, chat, documents, metrics, sessions
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -43,3 +43,4 @@ app.include_router(upload.router)
 app.include_router(chat.router)
 app.include_router(documents.router)
 app.include_router(metrics.router)
+app.include_router(sessions.router)

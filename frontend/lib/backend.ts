@@ -1,10 +1,11 @@
 /**
  * Called only in the backend (route.ts files)
- * 
+ *
  */
 import { ApiError } from "./error";
 import type { DocumentResponse, IngestResponse } from "@/app/models/documents";
 import type { QueryResponse } from "@/app/models/query";
+import type { SessionResponse, MessageOut } from "@/app/models/session";
 
 const BASE_URL = process.env.API_URL ?? "http://localhost:8000";
 
@@ -37,10 +38,46 @@ export const backend = {
   },
 
   query: {
-    send: (query: string): Promise<QueryResponse> =>
-      fetchBackend<QueryResponse>(
-        `/query?query=${encodeURIComponent(query)}`,
+    send: (query: string, session_id: string): Promise<QueryResponse> =>
+      fetchBackend<QueryResponse>("/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, session_id }),
+      }),
+  },
+
+  sessions: {
+    list: (): Promise<SessionResponse[]> =>
+      fetchBackend<SessionResponse[]>("/sessions"),
+
+    create: (title?: string | null): Promise<SessionResponse> =>
+      fetchBackend<SessionResponse>("/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title ?? null }),
+      }),
+
+    delete: (id: string): Promise<{ detail: string }> =>
+      fetchBackend<{ detail: string }>(`/sessions/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
+
+    getMessages: (id: string): Promise<MessageOut[]> =>
+      fetchBackend<MessageOut[]>(`/sessions/${encodeURIComponent(id)}/messages`),
+
+    getDocuments: (id: string): Promise<DocumentResponse[]> =>
+      fetchBackend<DocumentResponse[]>(`/sessions/${encodeURIComponent(id)}/documents`),
+
+    attachDocument: (sessionId: string, documentId: string): Promise<DocumentResponse> =>
+      fetchBackend<DocumentResponse>(
+        `/sessions/${encodeURIComponent(sessionId)}/documents/${encodeURIComponent(documentId)}`,
         { method: "POST" }
+      ),
+
+    detachDocument: (sessionId: string, documentId: string): Promise<{ detail: string }> =>
+      fetchBackend<{ detail: string }>(
+        `/sessions/${encodeURIComponent(sessionId)}/documents/${encodeURIComponent(documentId)}`,
+        { method: "DELETE" }
       ),
   },
 

@@ -86,12 +86,10 @@ async def ingest(file: UploadFile = File(...), db=Depends(get_db)):
         log.info("Embedding completed", document_id=doc.id)
 
         for i, (chunk_el, vector) in enumerate(zip(chunks, vectors)):
-            page_num = getattr(chunk_el.metadata, "page_number", None)
             chunk_record = Chunk(
                 document_id=doc.id,
                 content=chunk_el.text,
                 chunk_index=i,
-                page_number=page_num,
                 category=chunk_el.category,
                 embedding=vector,
             )

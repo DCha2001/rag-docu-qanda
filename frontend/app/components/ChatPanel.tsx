@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import type { SessionResponse } from "@/app/models/session";
 
 export interface Message {
   role: "user" | "assistant";
@@ -17,6 +18,7 @@ interface ChatPanelProps {
   loading: boolean;
   onSend: (query: string) => void;
   hasDocuments: boolean;
+  activeSession: SessionResponse | null;
 }
 
 export default function ChatPanel({
@@ -24,6 +26,7 @@ export default function ChatPanel({
   loading,
   onSend,
   hasDocuments,
+  activeSession,
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -40,8 +43,38 @@ export default function ChatPanel({
     setInput("");
   }
 
+  // Determine empty-state message based on session and document state
+  function getEmptyStateMessage(): { heading: string; body: string } {
+    if (!activeSession) {
+      return {
+        heading: "No session selected",
+        body: "Select or create a session to start chatting.",
+      };
+    }
+    if (!hasDocuments) {
+      return {
+        heading: "No documents in this session",
+        body: "Attach a document to this session to get started.",
+      };
+    }
+    return {
+      heading: "Ask about your documents",
+      body: "Type a question below to search across the session's documents.",
+    };
+  }
+
+  const isDisabled = !activeSession || !hasDocuments || loading;
+  const emptyState = getEmptyStateMessage();
+
   return (
     <div className="flex flex-1 flex-col h-full bg-background">
+      {/* Session header bar */}
+      {activeSession && (
+        <div className="px-6 py-3 border-b text-sm font-medium text-foreground truncate">
+          {activeSession.title ?? "New session"}
+        </div>
+      )}
+
       {/* Messages */}
       <ScrollArea className="flex-1">
         <div className="flex flex-col gap-4 px-6 py-6">
@@ -52,12 +85,10 @@ export default function ChatPanel({
                   <MessageSquare className="size-7 text-muted-foreground" />
                 </div>
                 <h2 className="text-base font-semibold text-foreground">
-                  Ask about your documents
+                  {emptyState.heading}
                 </h2>
                 <p className="mt-1.5 text-sm text-muted-foreground">
-                  {hasDocuments
-                    ? "Type a question below to search across all uploaded documents."
-                    : "Upload a document on the left to get started."}
+                  {emptyState.body}
                 </p>
               </div>
             </div>
@@ -119,18 +150,20 @@ export default function ChatPanel({
               }
             }}
             placeholder={
-              hasDocuments
+              !activeSession
+                ? "Select a session to start…"
+                : hasDocuments
                 ? "Ask a question about your documents…"
-                : "Upload a document first…"
+                : "Attach a document to this session first…"
             }
-            disabled={!hasDocuments || loading}
+            disabled={isDisabled}
             rows={1}
             className="flex-1 min-h-0 resize-none"
           />
           <Button
             type="submit"
             size="icon"
-            disabled={!hasDocuments || loading || !input.trim()}
+            disabled={isDisabled || !input.trim()}
           >
             <Send data-icon="inline-start" />
           </Button>

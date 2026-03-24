@@ -25,7 +25,6 @@ def init_db():
     with engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         conn.commit()
-    Base.metadata.create_all(bind=engine)
 
 
 # Dependency function to get a database session for each request (used in FastAPI routes)

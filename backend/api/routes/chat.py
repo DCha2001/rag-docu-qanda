@@ -9,6 +9,7 @@ from services.augment_utils import combine_chunks, build_user_message
 
 from core.config import CLAUDE_MODEL
 from schemas.chat import QueryRequest, QueryResponse
+from db.models import Message, Session
 
 logger = structlog.get_logger(__name__)
 
@@ -51,7 +52,51 @@ Rules:
 def query(body: QueryRequest, client=Depends(get_anthropic_client), db=Depends(get_db)):
     log = logger.bind(endpoint="POST /query", query=body.query, model=CLAUDE_MODEL)
     try:
-        chunks = search_simliar_chunks(query=body.query, top_k=5, db=db)
+        # Verify session exists
+        session = db.query(Session).filter(Session.id == body.session_id).first()
+        if not session:
+            log.warning("query.session_not_found", session_id=body.session_id)
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Get session's attached document IDs for filtered retrieval
+        doc_ids = [doc.id for doc in session.documents if doc.status == "completed"]
+
+        # Load conversation history for the session
+        history = (
+            db.query(Message)
+            .filter(Message.session_id == body.session_id)
+            .order_by(Message.created_at)
+            .limit(20)
+            .all()
+        )
+        is_first_message = len(history) == 0
+
+        # Save user message to DB BEFORE calling Claude
+        user_msg = Message(
+            session_id=body.session_id,
+            role="user",
+            content=body.query,
+        )
+        db.add(user_msg)
+        db.commit()
+
+        # Auto-title the session from the first message if title is None
+        if session.title is None and is_first_message:
+            session.title = body.query[:60].strip()
+            db.commit()
+
+        # Build conversation history for Claude (excluding the just-saved user msg,
+        # since we append it below after augmentation)
+        conversation = [{"role": msg.role, "content": msg.content} for msg in history]
+        log.debug("Session history loaded", message_count=len(conversation))
+
+        # Retrieve relevant chunks filtered to the session's documents
+        chunks = search_simliar_chunks(
+            query=body.query,
+            top_k=5,
+            db=db,
+            document_ids=doc_ids if doc_ids else None,
+        )
         if "error" in chunks:
             log.error("Error during retrieval", error=chunks["error"])
             raise HTTPException(status_code=500, detail=chunks["error"])
@@ -61,17 +106,33 @@ def query(body: QueryRequest, client=Depends(get_anthropic_client), db=Depends(g
 
         log.debug(user_message)
 
-        messages = client.messages.create(
+        conversation.append({"role": "user", "content": user_message})
+
+        # Call Claude — use `response` to avoid shadowing the `messages` history list
+        response = client.messages.create(
             max_tokens=1024,
             system=SYSTEM_PROMPT,
-            messages=[
-                {"role": "user", "content": user_message}
-            ],
-            model=CLAUDE_MODEL
+            messages=conversation,
+            model=CLAUDE_MODEL,
         )
 
-        log.info("query.response", usage=str(messages.usage))
-        return {"response": messages.content}
+        log.info("query.response", usage=str(response.usage))
+
+        # Extract text from response content blocks
+        assistant_text = "".join(
+            block.text for block in response.content if block.type == "text"
+        )
+
+        # Save assistant message to DB AFTER getting response
+        assistant_msg = Message(
+            session_id=body.session_id,
+            role="assistant",
+            content=assistant_text,
+        )
+        db.add(assistant_msg)
+        db.commit()
+
+        return {"response": response.content}
     except HTTPException as e:
         raise e
     except Exception as e:

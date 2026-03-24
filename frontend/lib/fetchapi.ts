@@ -5,6 +5,7 @@
 import { ApiError } from "./error";
 import type { DocumentResponse, IngestResponse } from "@/app/models/documents";
 import type { QueryResponse } from "@/app/models/query";
+import type { SessionResponse, MessageOut } from "@/app/models/session";
 
 async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);
@@ -35,11 +36,47 @@ export const api = {
   },
 
   query: {
-    send: (query: string): Promise<QueryResponse> =>
+    send: (query: string, session_id: string): Promise<QueryResponse> =>
       fetchApi<QueryResponse>("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, session_id }),
       }),
+  },
+
+  sessions: {
+    list: (): Promise<SessionResponse[]> =>
+      fetchApi<SessionResponse[]>("/api/session"),
+
+    create: (title?: string | null): Promise<SessionResponse> =>
+      fetchApi<SessionResponse>("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title ?? null }),
+      }),
+
+    delete: (id: string): Promise<{ detail: string }> =>
+      fetchApi<{ detail: string }>(`/api/session/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
+
+    getMessages: (id: string): Promise<MessageOut[]> =>
+      fetchApi<MessageOut[]>(`/api/session/${encodeURIComponent(id)}/messages`),
+
+    getDocuments: (id: string): Promise<DocumentResponse[]> =>
+      fetchApi<DocumentResponse[]>(`/api/session/${encodeURIComponent(id)}/documents`),
+
+    attachDocument: (sessionId: string, documentId: string): Promise<DocumentResponse> =>
+      fetchApi<DocumentResponse>(`/api/session/${encodeURIComponent(sessionId)}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document_id: documentId }),
+      }),
+
+    detachDocument: (sessionId: string, documentId: string): Promise<{ detail: string }> =>
+      fetchApi<{ detail: string }>(
+        `/api/session/${encodeURIComponent(sessionId)}/documents/${encodeURIComponent(documentId)}`,
+        { method: "DELETE" }
+      ),
   },
 };
