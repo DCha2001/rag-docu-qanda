@@ -1,0 +1,5 @@
+# Monorepo — each service has its own railway.toml in its subdirectory.
+# In the Railway dashboard, set the Root Directory per service:
+#   backend  → /backend
+#   frontend → /frontend
+#   db       → Railway managed PostgreSQL service (add pgvector extension manually)
