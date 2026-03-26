@@ -18,7 +18,9 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Override the placeholder URL in alembic.ini with the real one from .env
-config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+# Railway provides postgres:// but SQLAlchemy requires postgresql://
+db_url = os.environ["DATABASE_URL"].replace("postgres://", "postgresql://", 1)
+config.set_main_option("sqlalchemy.url", db_url)
 
 
 def run_migrations_offline() -> None:
