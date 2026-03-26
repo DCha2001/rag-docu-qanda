@@ -92,9 +92,9 @@ class Chunk(Base):
     # Category from unstructured (e.g., "NarrativeText", "Title", "Table")
     category: Mapped[str] = mapped_column(String(50), nullable=True)
 
-    # The embedding vector — 512 dimensions for voyage-3-lite.
+    # The embedding vector — 1024 dimensions for voyage-4-lite.
     # This is what pgvector uses for similarity search.
-    embedding = mapped_column(Vector(512), nullable=True)
+    embedding = mapped_column(Vector(1024), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
