@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 from db.dbconnect import get_db
 from db.models import Document, Chunk
-from services.ingestion import parse, chunk, embed
+from services.ingestion import parse, embed
 
 from utils.hash import generate_hash
 from utils.cancellation import IngestionCancelledError
@@ -82,16 +82,9 @@ async def ingest(request: Request, file: UploadFile = File(...), db=Depends(get_
         log.info("Starting parsing", document_id=doc.id)
         doc.status = "parsing"
         db.commit()
-        elements = await asyncio.to_thread(parse, tmp_path)
+        chunks = await asyncio.to_thread(parse, tmp_path)
 
-        log.info("Parsing completed, starting chunking", element_count=len(elements))
-
-        log.info("Starting chunking", document_id=doc.id)   
-        doc.status = "chunking"
-        db.commit()
-        chunks = await asyncio.to_thread(chunk, elements)
-
-        log.info("Chunking completed, starting embedding", chunk_count=len(chunks))
+        log.info("Parsing completed, starting embedding", chunk_count=len(chunks))
 
         log.info("Starting embedding", document_id=doc.id)
         doc.status = "embedding"

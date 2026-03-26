@@ -12,7 +12,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from db.models import Document, Chunk
-from services.ingestion import parse, chunk, embed
+from services.ingestion import parse, embed
 from utils.hash import generate_hash
 
 logger = logging.getLogger(__name__)
@@ -58,11 +58,7 @@ async def seed_demo_documents(db: Session) -> None:
             db.commit()
             db.refresh(doc)
 
-            elements = await asyncio.to_thread(parse, str(docx_path))
-
-            doc.status = "chunking"
-            db.commit()
-            chunks = await asyncio.to_thread(chunk, elements)
+            chunks = await asyncio.to_thread(parse, str(docx_path))
 
             doc.status = "embedding"
             db.commit()

@@ -11,10 +11,10 @@ pgvector
 alembic
 
 # Document parsing & chunking
-unstructured[local-inference]
+unstructured-client
 
 # Embeddings
-sentence-transformers
+voyageai
 
 # AI
 anthropic

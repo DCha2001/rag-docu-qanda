@@ -1,5 +1,16 @@
-from services.ingestion import _get_model
+import os
+
+import voyageai
 from sqlalchemy import text
+
+_client: voyageai.Client | None = None
+
+
+def _get_client() -> voyageai.Client:
+    global _client
+    if _client is None:
+        _client = voyageai.Client(api_key=os.environ["VOYAGE_API_KEY"])
+    return _client
 
 
 def search_simliar_chunks(
@@ -10,8 +21,8 @@ def search_simliar_chunks(
     db=None,
 ):
     try:
-        embedding_model = _get_model()
-        query_embedding = embedding_model.encode([query], show_progress_bar=False).tolist()[0]
+        result = _get_client().embed([query], model="voyage-3-lite", input_type="query")
+        query_embedding = result.embeddings[0]
 
         # Build the document filter clause dynamically.
         # When document_ids is provided and non-empty, restrict results to those
