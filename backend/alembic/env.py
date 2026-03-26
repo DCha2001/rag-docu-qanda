@@ -19,9 +19,7 @@ target_metadata = Base.metadata
 
 # Override the placeholder URL in alembic.ini with the real one from .env
 # Railway provides postgres:// but SQLAlchemy requires postgresql://
-raw_url = os.environ.get("DATABASE_URL", "NOT SET")
-print(f"[alembic] DATABASE_URL prefix: {raw_url[:30]!r}")
-db_url = raw_url.replace("postgres://", "postgresql://", 1)
+db_url = os.environ["DATABASE_URL"].replace("postgres://", "postgresql://", 1)
 config.set_main_option("sqlalchemy.url", db_url)
 
 
