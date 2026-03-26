@@ -49,7 +49,7 @@ app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-origins_env = os.environ.get("ALLOWED_ORIGINS", "https://reliable-youth.railway.internal,http://localhost:3000,http://frontend:3000")
+origins_env = os.environ.get("ALLOWED_ORIGINS", "http://reliable-youth.railway.internal,http://localhost:3000,http://frontend:3000")
 allowed_origins = [o.strip() for o in origins_env.split(",")]
 
 app.add_middleware(
