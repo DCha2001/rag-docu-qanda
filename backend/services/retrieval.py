@@ -21,7 +21,7 @@ def search_simliar_chunks(
     db=None,
 ):
     try:
-        result = _get_client().embed([query], model="voyage-3-lite", input_type="query")
+        result = _get_client().embed([query], model="voyage-4-lite", input_type="query")
         query_embedding = result.embeddings[0]
 
         # Build the document filter clause dynamically.
