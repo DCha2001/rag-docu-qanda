@@ -1,6 +1,6 @@
 import structlog
 
-logger = structlog.get_logger(__name___)
+logger = structlog.get_logger(__name__)
 
 async def analyze_chunk(chunks : list, document_id: str):
     log = logger.bind(endpoint="analyze_chunk", document_id=document_id)

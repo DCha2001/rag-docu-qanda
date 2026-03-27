@@ -53,7 +53,7 @@ async def ingest(
             raise HTTPException(status_code=400, detail="File does not appear to be a valid PDF.")
         if ext == ".docx" and not file_read.startswith(b"PK\x03\x04"):
             raise HTTPException(status_code=400, detail="File does not appear to be a valid DOCX.")
-        suffix = os.path.splitext(file.filename)[1]
+        suffix = os.path.splitext(file.filename or "")[1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(file_read)
             tmp_path = tmp.name
