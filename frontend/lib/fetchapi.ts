@@ -4,7 +4,6 @@
  */
 import { ApiError } from "./error";
 import type { DocumentResponse, IngestResponse } from "@/app/models/documents";
-import type { QueryResponse } from "@/app/models/query";
 import type { SessionResponse, MessageOut } from "@/app/models/session";
 
 async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
@@ -33,15 +32,6 @@ export const api = {
     },
     delete: (id: string): Promise<void> =>
       fetchApi<void>(`/api/document?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
-  },
-
-  query: {
-    send: (query: string, session_id: string): Promise<QueryResponse> =>
-      fetchApi<QueryResponse>("/api/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, session_id }),
-      }),
   },
 
   sessions: {
