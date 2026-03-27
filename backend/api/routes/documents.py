@@ -6,18 +6,16 @@ from db.dbconnect import get_db
 from db.models import Document
 from schemas.documents import DocumentResponse, MessageResponse
 import utils.cancellation as cancellation
+from core.auth import get_current_user
 
 router = APIRouter()
 
 logger = structlog.get_logger(__name__)
 
-# response_model=MessageResponse tells FastAPI: validate the return value
-# against MessageResponse and use it to generate /docs documentation.
-# If your function accidentally returns {"detial": "..."} (typo), FastAPI
-# will catch it at runtime rather than silently sending wrong JSON.
+
 @router.delete("/document", response_model=MessageResponse)
-def delete_document(id: str, db=Depends(get_db)):
-    log = logger.bind(endpoint="DELETE /document", document_id=id)
+def delete_document(id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+    log = logger.bind(endpoint="DELETE /document", document_id=id, user_id=user_id)
     log.info("delete_document.started")
 
     try:
@@ -29,11 +27,11 @@ def delete_document(id: str, db=Depends(get_db)):
         if doc.is_demo:
             raise HTTPException(status_code=403, detail="Demo documents cannot be deleted.")
 
-        # Signal the ingestion pipeline (if running) to stop at the next
-        # batch boundary. The pipeline will notice the event is set, raise
-        # IngestionCancelledError, and clean itself up. We delete the DB
-        # record immediately — the pipeline's finally block handles its own
-        # cleanup (temp file, registry deregistration).
+        # IDOR protection: only the owner can delete their document
+        if doc.user_id != user_id:
+            log.warning("delete_document.forbidden", doc_owner=doc.user_id)
+            raise HTTPException(status_code=403, detail="Not authorized to delete this document")
+
         was_processing = cancellation.signal(id)
         if was_processing:
             log.info("delete_document.cancellation_signalled", document_id=id)
@@ -48,24 +46,23 @@ def delete_document(id: str, db=Depends(get_db)):
         log.error("delete_document.db_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to delete document")
 
-# list[DocumentResponse] means FastAPI expects a list where every item
-# matches the DocumentResponse schema. It will serialize each Document
-# ORM object automatically because DocumentResponse has from_attributes=True.
+
 @router.get("/document/list", response_model=list[DocumentResponse])
-def list_documents(db=Depends(get_db)):
-    log = logger.bind(endpoint="GET /document")
+def list_documents(db=Depends(get_db), user_id: str = Depends(get_current_user)):
+    log = logger.bind(endpoint="GET /document", user_id=user_id)
     log.info("list_documents.started")
 
     try:
-        docs = db.query(Document).order_by(Document.created_at.desc()).all()
+        # Return the user's own documents plus all demo documents
+        docs = (
+            db.query(Document)
+            .filter((Document.user_id == user_id) | (Document.is_demo == True))
+            .order_by(Document.created_at.desc())
+            .all()
+        )
     except Exception as e:
         log.error("list_documents.db_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to fetch documents")
 
     log.info("list_documents.success", count=len(docs))
-
-    # Before schemas: we had to manually build a dict for each doc.
-    # Now we return the ORM objects directly. Pydantic reads the attributes
-    # off each Document instance because DocumentResponse has from_attributes=True.
-    # FastAPI handles serialization (including the datetime → ISO string conversion).
     return docs

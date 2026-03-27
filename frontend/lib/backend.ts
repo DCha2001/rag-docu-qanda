@@ -1,6 +1,6 @@
 /**
- * Called only in the backend (route.ts files)
- *
+ * Called only in the backend (route.ts files).
+ * Use createBackend(token) to create an authenticated client.
  */
 import { ApiError } from "./error";
 import type { DocumentResponse, IngestResponse } from "@/app/models/documents";
@@ -9,8 +9,26 @@ import type { SessionResponse, MessageOut } from "@/app/models/session";
 
 const BASE_URL = process.env.API_URL ?? "http://localhost:8000";
 
-async function fetchBackend<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, init);
+function buildHeaders(
+  token: string | undefined,
+  extra?: Record<string, string>
+): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+async function fetchBackend<T>(
+  path: string,
+  init?: RequestInit,
+  token?: string
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: buildHeaders(token, init?.headers as Record<string, string>),
+  });
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -23,66 +41,79 @@ async function fetchBackend<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export const backend = {
-  documents: {
-    list: (): Promise<DocumentResponse[]> =>
-      fetchBackend<DocumentResponse[]>("/document/list"),
+/**
+ * Create an authenticated backend client.
+ * Pass the Supabase access_token from the server-side session.
+ */
+export function createBackend(token?: string) {
+  const fetch = <T>(path: string, init?: RequestInit) =>
+    fetchBackend<T>(path, init, token);
 
-    upload: (file: File): Promise<IngestResponse> => {
-      const form = new FormData();
-      form.append("file", file);
-      return fetchBackend<IngestResponse>("/ingest", { method: "POST", body: form });
+  return {
+    documents: {
+      list: (): Promise<DocumentResponse[]> =>
+        fetch<DocumentResponse[]>("/document/list"),
+
+      upload: (file: File): Promise<IngestResponse> => {
+        const form = new FormData();
+        form.append("file", file);
+        return fetch<IngestResponse>("/ingest", { method: "POST", body: form });
+      },
+
+      delete: (id: string): Promise<void> =>
+        fetch<void>(`/document?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
     },
-    delete: (id: string): Promise<void> =>
-      fetchBackend<void>(`/document?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
-  },
 
-  query: {
-    send: (query: string, session_id: string): Promise<QueryResponse> =>
-      fetchBackend<QueryResponse>("/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, session_id }),
-      }),
-  },
+    query: {
+      send: (query: string, session_id: string): Promise<QueryResponse> =>
+        fetch<QueryResponse>("/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, session_id }),
+        }),
+    },
 
-  sessions: {
-    list: (): Promise<SessionResponse[]> =>
-      fetchBackend<SessionResponse[]>("/sessions"),
+    sessions: {
+      list: (): Promise<SessionResponse[]> =>
+        fetch<SessionResponse[]>("/sessions"),
 
-    create: (title?: string | null): Promise<SessionResponse> =>
-      fetchBackend<SessionResponse>("/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title ?? null }),
-      }),
+      create: (title?: string | null): Promise<SessionResponse> =>
+        fetch<SessionResponse>("/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: title ?? null }),
+        }),
 
-    delete: (id: string): Promise<{ detail: string }> =>
-      fetchBackend<{ detail: string }>(`/sessions/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      }),
+      delete: (id: string): Promise<{ detail: string }> =>
+        fetch<{ detail: string }>(`/sessions/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        }),
 
-    getMessages: (id: string): Promise<MessageOut[]> =>
-      fetchBackend<MessageOut[]>(`/sessions/${encodeURIComponent(id)}/messages`),
+      getMessages: (id: string): Promise<MessageOut[]> =>
+        fetch<MessageOut[]>(`/sessions/${encodeURIComponent(id)}/messages`),
 
-    getDocuments: (id: string): Promise<DocumentResponse[]> =>
-      fetchBackend<DocumentResponse[]>(`/sessions/${encodeURIComponent(id)}/documents`),
+      getDocuments: (id: string): Promise<DocumentResponse[]> =>
+        fetch<DocumentResponse[]>(`/sessions/${encodeURIComponent(id)}/documents`),
 
-    attachDocument: (sessionId: string, documentId: string): Promise<DocumentResponse> =>
-      fetchBackend<DocumentResponse>(
-        `/sessions/${encodeURIComponent(sessionId)}/documents/${encodeURIComponent(documentId)}`,
-        { method: "POST" }
-      ),
+      attachDocument: (sessionId: string, documentId: string): Promise<DocumentResponse> =>
+        fetch<DocumentResponse>(
+          `/sessions/${encodeURIComponent(sessionId)}/documents/${encodeURIComponent(documentId)}`,
+          { method: "POST" }
+        ),
 
-    detachDocument: (sessionId: string, documentId: string): Promise<{ detail: string }> =>
-      fetchBackend<{ detail: string }>(
-        `/sessions/${encodeURIComponent(sessionId)}/documents/${encodeURIComponent(documentId)}`,
-        { method: "DELETE" }
-      ),
-  },
+      detachDocument: (sessionId: string, documentId: string): Promise<{ detail: string }> =>
+        fetch<{ detail: string }>(
+          `/sessions/${encodeURIComponent(sessionId)}/documents/${encodeURIComponent(documentId)}`,
+          { method: "DELETE" }
+        ),
+    },
 
-  health: {
-    ping: (): Promise<{ status: string }> =>
-      fetchBackend<{ status: string }>("/health"),
-  },
-};
+    health: {
+      ping: (): Promise<{ status: string }> =>
+        fetch<{ status: string }>("/health"),
+    },
+  };
+}
+
+/** Unauthenticated client kept for backward compat (health checks etc.) */
+export const backend = createBackend();

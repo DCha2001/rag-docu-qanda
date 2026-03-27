@@ -51,6 +51,8 @@ class Document(Base):
         onupdate=lambda: datetime.now(timezone.utc)
     )
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Supabase user UUID — NULL for demo documents (shared with all users)
+    user_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
     # Relationship: one document has many chunks.
     # cascade="all, delete-orphan" means if you delete a document,
@@ -117,6 +119,8 @@ class Session(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title: Mapped[str] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    # Supabase user UUID — all sessions belong to a specific user
+    user_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
 
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="session", cascade="all, delete-orphan", order_by="Message.created_at")
     documents: Mapped[list["Document"]] = relationship("Document", secondary="session_documents")

@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 from core.limiter import limiter
 
 from core.client import get_anthropic_client
+from core.auth import get_current_user
 from db.dbconnect import get_db
 from services.retrieval import search_simliar_chunks
 from services.augment_utils import combine_chunks, build_user_message
@@ -39,14 +40,22 @@ Rules:
 
 @router.post("/query")
 @limiter.limit("20/minute")
-def query(request: Request, body: QueryRequest, client=Depends(get_anthropic_client), db=Depends(get_db)):
-    log = logger.bind(endpoint="POST /query", query=body.query, model=CLAUDE_MODEL)
-
-    # Verify session exists
+def query(
+    request: Request,
+    body: QueryRequest,
+    client=Depends(get_anthropic_client),
+    db=Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    log = logger.bind(endpoint="POST /query", query=body.query, model=CLAUDE_MODEL, user_id=user_id)
+        # Verify session exists and belongs to the requesting user (IDOR protection)
     session = db.query(Session).filter(Session.id == body.session_id).first()
     if not session:
         log.warning("query.session_not_found", session_id=body.session_id)
         raise HTTPException(status_code=404, detail="Session not found")
+    if session.user_id != user_id:
+        log.warning("query.session_forbidden", session_id=body.session_id, session_owner=session.user_id)
+        raise HTTPException(status_code=403, detail="Not authorized to query this session")
 
     # Get session's attached document IDs for filtered retrieval
     doc_ids = [doc.id for doc in session.documents if doc.status == "completed"]
