@@ -116,7 +116,7 @@ export default function ChatPanel({
             </div>
           ))}
 
-          {loading && (
+          {loading && messages[messages.length - 1]?.text === "" && (
             <div className="flex justify-start">
               <div className="mr-2.5 mt-0.5 flex size-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
                 AI

@@ -168,40 +168,72 @@ export default function Home() {
   async function handleSend(query: string) {
     if (!activeSessionId) return;
 
-    // Optimistically append the user message
     setMessages((prev) => [...prev, { role: "user", text: query }]);
+    // Add empty assistant message that we'll fill in as chunks arrive
+    setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
     setChatLoading(true);
 
     try {
-      const data = await api.query.send(query, activeSessionId);
+      const res = await fetch("/api/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, session_id: activeSessionId }),
+      });
 
-      if (data.error) {
-        toast.error(data.error);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", text: `Error: ${data.error}` },
-        ]);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const detail = body?.error ?? res.statusText;
+        toast.error(detail);
+        setMessages((prev) => {
+          const msgs = [...prev];
+          msgs[msgs.length - 1] = { role: "assistant", text: `Error: ${detail}` };
+          return msgs;
+        });
         return;
       }
 
-      // The API returns content blocks: [{type: "text", text: "..."}]
-      const text = Array.isArray(data.response)
-        ? data.response
-            .filter((b) => b.type === "text")
-            .map((b) => b.text)
-            .join("")
-        : String(data.response);
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
 
-      setMessages((prev) => [...prev, { role: "assistant", text }]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      // Refresh sessions list so any auto-generated title shows up
-      await fetchSessions();
+        const lines = decoder.decode(value).split("\n\n").filter(Boolean);
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = JSON.parse(line.slice(6));
+
+          if (payload.error) {
+            toast.error(payload.error);
+            setMessages((prev) => {
+              const msgs = [...prev];
+              msgs[msgs.length - 1] = { role: "assistant", text: `Error: ${payload.error}` };
+              return msgs;
+            });
+          } else if (payload.text) {
+            // Hide loading dots once first chunk arrives
+            setChatLoading(false);
+            setMessages((prev) => {
+              const msgs = [...prev];
+              msgs[msgs.length - 1] = {
+                role: "assistant",
+                text: msgs[msgs.length - 1].text + payload.text,
+              };
+              return msgs;
+            });
+          } else if (payload.done) {
+            await fetchSessions();
+          }
+        }
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to reach the server");
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "Failed to reach the server." },
-      ]);
+      setMessages((prev) => {
+        const msgs = [...prev];
+        msgs[msgs.length - 1] = { role: "assistant", text: "Failed to reach the server." };
+        return msgs;
+      });
     } finally {
       setChatLoading(false);
     }
