@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from core.limiter import limiter
 
 from core.client import get_anthropic_client
+from core.auth import get_current_user
 from db.dbconnect import get_db
 from services.retrieval import search_simliar_chunks
 from services.augment_utils import combine_chunks, build_user_message
@@ -35,30 +36,25 @@ Rules:
 """
 
 
-# BEFORE: `query: str` was a URL query parameter (?query=...).
-# AFTER:  `body: QueryRequest` is a JSON request body.
-#
-# FastAPI knows the difference by type:
-#   - Primitive types (str, int) with no default → URL query param
-#   - A Pydantic BaseModel subclass → JSON request body
-#
-# WHY the change?
-#   1. Pydantic validates the body (min_length, max_length) before your code runs
-#   2. POST bodies don't appear in server access logs (queries might be sensitive)
-#   3. Special characters don't need URL encoding
-#
-# response_model=QueryResponse tells FastAPI to validate and serialize the
-# return value. The Anthropic SDK TextBlock objects are read via from_attributes.
 @router.post("/query", response_model=QueryResponse)
 @limiter.limit("20/minute")
-def query(request: Request, body: QueryRequest, client=Depends(get_anthropic_client), db=Depends(get_db)):
-    log = logger.bind(endpoint="POST /query", query=body.query, model=CLAUDE_MODEL)
+def query(
+    request: Request,
+    body: QueryRequest,
+    client=Depends(get_anthropic_client),
+    db=Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    log = logger.bind(endpoint="POST /query", query=body.query, model=CLAUDE_MODEL, user_id=user_id)
     try:
-        # Verify session exists
+        # Verify session exists and belongs to the requesting user (IDOR protection)
         session = db.query(Session).filter(Session.id == body.session_id).first()
         if not session:
             log.warning("query.session_not_found", session_id=body.session_id)
             raise HTTPException(status_code=404, detail="Session not found")
+        if session.user_id != user_id:
+            log.warning("query.session_forbidden", session_id=body.session_id, session_owner=session.user_id)
+            raise HTTPException(status_code=403, detail="Not authorized to query this session")
 
         # Get session's attached document IDs for filtered retrieval
         doc_ids = [doc.id for doc in session.documents if doc.status == "completed"]
@@ -87,8 +83,7 @@ def query(request: Request, body: QueryRequest, client=Depends(get_anthropic_cli
             session.title = body.query[:60].strip()
             db.commit()
 
-        # Build conversation history for Claude (excluding the just-saved user msg,
-        # since we append it below after augmentation)
+        # Build conversation history for Claude
         conversation = [{"role": msg.role, "content": msg.content} for msg in history]
         log.debug("Session history loaded", message_count=len(conversation))
 
@@ -110,7 +105,6 @@ def query(request: Request, body: QueryRequest, client=Depends(get_anthropic_cli
 
         conversation.append({"role": "user", "content": user_message})
 
-        # Call Claude — use `response` to avoid shadowing the `messages` history list
         response = client.messages.create(
             max_tokens=1024,
             system=SYSTEM_PROMPT,

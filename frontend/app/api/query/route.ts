@@ -1,9 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
-import { backend } from "@/lib/backend";
+import { createBackend } from "@/lib/backend";
+import { getAccessToken } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
     const { query, session_id } = await request.json();
+    const token = await getAccessToken();
+    const backend = createBackend(token);
     const data = await backend.query.send(query, session_id);
     return NextResponse.json(data);
   } catch (err) {

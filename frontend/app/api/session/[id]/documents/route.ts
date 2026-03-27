@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
-import { backend } from "@/lib/backend";
+import { createBackend } from "@/lib/backend";
+import { getAccessToken } from "@/lib/supabase/server";
 
 export async function GET(
   _request: Request,
@@ -7,6 +8,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const token = await getAccessToken();
+    const backend = createBackend(token);
     const documents = await backend.sessions.getDocuments(id);
     return NextResponse.json(documents);
   } catch (err) {
@@ -22,6 +25,8 @@ export async function POST(
   try {
     const { id } = await params;
     const { document_id } = await request.json();
+    const token = await getAccessToken();
+    const backend = createBackend(token);
     const document = await backend.sessions.attachDocument(id, document_id);
     return NextResponse.json(document);
   } catch (err) {

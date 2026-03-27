@@ -16,6 +16,7 @@ from utils.hash import generate_hash
 from utils.cancellation import IngestionCancelledError
 import utils.cancellation as cancellation
 from schemas.documents import DocumentResponse
+from core.auth import get_current_user
 
 router = APIRouter()
 
@@ -23,14 +24,16 @@ logger = structlog.get_logger(__name__)
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".html", ".xlsx"}
 
-# The ingest endpoint already returns a Document ORM object (`return doc`).
-# Adding response_model=DocumentResponse means FastAPI will validate that
-# object against our schema and serialize it — no code change needed inside
-# the function body. The schema does the work.
+
 @router.post("/ingest", response_model=DocumentResponse)
 @limiter.limit("5/minute")
-async def ingest(request: Request, file: UploadFile = File(...), db=Depends(get_db)):
-    log = logger.bind(endpoint="POST /ingest", filename=file.filename)
+async def ingest(
+    request: Request,
+    file: UploadFile = File(...),
+    db=Depends(get_db),
+    user_id: str = Depends(get_current_user),
+):
+    log = logger.bind(endpoint="POST /ingest", filename=file.filename, user_id=user_id)
 
     if (file.size is not None) and (file.size > 50 * 1024 * 1024):
         log.warning("File size exceeds limit", file_size=file.size)
@@ -64,19 +67,20 @@ async def ingest(request: Request, file: UploadFile = File(...), db=Depends(get_
     try:
         file_hash = generate_hash(file_read)
 
-        # Check for existing document with this hash
+        # Check for duplicate — scoped to this user (demo docs use is_demo flag)
         existing = db.execute(
-            text("SELECT id, filename FROM documents WHERE file_hash = :hash"),
-            {"hash": file_hash}
+            text("SELECT id, filename FROM documents WHERE file_hash = :hash AND (user_id = :uid OR is_demo = true)"),
+            {"hash": file_hash, "uid": user_id}
         ).fetchone()
 
         if existing:
             log.error("Duplicate document detected, skipping ingestion", existing_id=existing.id, existing_filename=existing.filename)
             raise HTTPException(status_code=400, detail=f"Document already ingested as '{existing.filename}'")
-        doc = Document(filename=file.filename, file_hash=file_hash)
+
+        doc = Document(filename=file.filename, file_hash=file_hash, user_id=user_id)
         db.add(doc)
         db.commit()
-        db.refresh(doc) # This allows us to communicate foreign keys or etc. back to the database to ensure data is up to date
+        db.refresh(doc)
         log.info("Document record created in database", document_id=doc.id)
 
         log.info("Starting parsing", document_id=doc.id)
@@ -112,9 +116,6 @@ async def ingest(request: Request, file: UploadFile = File(...), db=Depends(get_
     except HTTPException as e:
         raise e
     except IngestionCancelledError:
-        # The document was deleted mid-pipeline. The DB record is already gone
-        # so we must NOT attempt to update doc.status — that would error.
-        # db.rollback() discards the unsaved chunks from the session cleanly.
         db.rollback()
         log.info("Ingestion cancelled — document was deleted mid-pipeline", document_id=doc.id if doc else None)
         raise HTTPException(status_code=409, detail="Document was deleted while processing")

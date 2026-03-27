@@ -24,3 +24,6 @@ structlog
 
 # Config
 python-dotenv
+
+# Auth
+PyJWT

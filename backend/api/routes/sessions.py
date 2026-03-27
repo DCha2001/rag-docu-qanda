@@ -6,6 +6,7 @@ from db.dbconnect import get_db
 from db.models import Session, Message, Document, SessionDocument
 from schemas.chat import SessionCreate, SessionOut, MessageOut
 from schemas.documents import DocumentResponse
+from core.auth import get_current_user
 
 logger = structlog.get_logger(__name__)
 
@@ -13,11 +14,16 @@ router = APIRouter()
 
 
 @router.get("/sessions", response_model=list[SessionOut])
-def list_sessions(db=Depends(get_db)):
-    log = logger.bind(endpoint="GET /sessions")
+def list_sessions(db=Depends(get_db), user_id: str = Depends(get_current_user)):
+    log = logger.bind(endpoint="GET /sessions", user_id=user_id)
     log.info("list_sessions.started")
     try:
-        sessions = db.query(Session).order_by(Session.created_at.desc()).all()
+        sessions = (
+            db.query(Session)
+            .filter(Session.user_id == user_id)
+            .order_by(Session.created_at.desc())
+            .all()
+        )
         log.info("list_sessions.success", count=len(sessions))
         return sessions
     except Exception as e:
@@ -26,11 +32,11 @@ def list_sessions(db=Depends(get_db)):
 
 
 @router.post("/sessions", response_model=SessionOut)
-def create_session(body: SessionCreate, db=Depends(get_db)):
-    log = logger.bind(endpoint="POST /sessions")
+def create_session(body: SessionCreate, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+    log = logger.bind(endpoint="POST /sessions", user_id=user_id)
     log.info("create_session.started")
     try:
-        session = Session(title=body.title)
+        session = Session(title=body.title, user_id=user_id)
         db.add(session)
         db.commit()
         db.refresh(session)
@@ -41,15 +47,22 @@ def create_session(body: SessionCreate, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to create session")
 
 
+def _get_owned_session(session_id: str, user_id: str, db) -> Session:
+    """Fetch a session and verify it belongs to the requesting user."""
+    session = db.query(Session).filter(Session.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this session")
+    return session
+
+
 @router.delete("/sessions/{session_id}")
-def delete_session(session_id: str, db=Depends(get_db)):
-    log = logger.bind(endpoint="DELETE /sessions/{session_id}", session_id=session_id)
+def delete_session(session_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+    log = logger.bind(endpoint="DELETE /sessions/{session_id}", session_id=session_id, user_id=user_id)
     log.info("delete_session.started")
     try:
-        session = db.query(Session).filter(Session.id == session_id).first()
-        if not session:
-            log.warning("delete_session.not_found")
-            raise HTTPException(status_code=404, detail="Session not found")
+        session = _get_owned_session(session_id, user_id, db)
         db.delete(session)
         db.commit()
         log.info("delete_session.success")
@@ -62,14 +75,11 @@ def delete_session(session_id: str, db=Depends(get_db)):
 
 
 @router.get("/sessions/{session_id}/messages", response_model=list[MessageOut])
-def get_session_messages(session_id: str, db=Depends(get_db)):
-    log = logger.bind(endpoint="GET /sessions/{session_id}/messages", session_id=session_id)
+def get_session_messages(session_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+    log = logger.bind(endpoint="GET /sessions/{session_id}/messages", session_id=session_id, user_id=user_id)
     log.info("get_session_messages.started")
     try:
-        session = db.query(Session).filter(Session.id == session_id).first()
-        if not session:
-            log.warning("get_session_messages.not_found")
-            raise HTTPException(status_code=404, detail="Session not found")
+        _get_owned_session(session_id, user_id, db)
         messages = (
             db.query(Message)
             .filter(Message.session_id == session_id)
@@ -86,14 +96,11 @@ def get_session_messages(session_id: str, db=Depends(get_db)):
 
 
 @router.get("/sessions/{session_id}/documents", response_model=list[DocumentResponse])
-def get_session_documents(session_id: str, db=Depends(get_db)):
-    log = logger.bind(endpoint="GET /sessions/{session_id}/documents", session_id=session_id)
+def get_session_documents(session_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+    log = logger.bind(endpoint="GET /sessions/{session_id}/documents", session_id=session_id, user_id=user_id)
     log.info("get_session_documents.started")
     try:
-        session = db.query(Session).filter(Session.id == session_id).first()
-        if not session:
-            log.warning("get_session_documents.not_found")
-            raise HTTPException(status_code=404, detail="Session not found")
+        session = _get_owned_session(session_id, user_id, db)
         log.info("get_session_documents.success", count=len(session.documents))
         return session.documents
     except HTTPException as e:
@@ -104,25 +111,27 @@ def get_session_documents(session_id: str, db=Depends(get_db)):
 
 
 @router.post("/sessions/{session_id}/documents/{document_id}", response_model=DocumentResponse)
-def attach_document(session_id: str, document_id: str, db=Depends(get_db)):
+def attach_document(session_id: str, document_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
     log = logger.bind(
         endpoint="POST /sessions/{session_id}/documents/{document_id}",
         session_id=session_id,
         document_id=document_id,
+        user_id=user_id,
     )
     log.info("attach_document.started")
     try:
-        session = db.query(Session).filter(Session.id == session_id).first()
-        if not session:
-            log.warning("attach_document.session_not_found")
-            raise HTTPException(status_code=404, detail="Session not found")
+        _get_owned_session(session_id, user_id, db)
 
         document = db.query(Document).filter(Document.id == document_id).first()
         if not document:
             log.warning("attach_document.document_not_found")
             raise HTTPException(status_code=404, detail="Document not found")
 
-        # Idempotent: only attach if not already attached
+        # IDOR protection: only attach documents the user owns or demo documents
+        if document.user_id != user_id and not document.is_demo:
+            log.warning("attach_document.forbidden", doc_owner=document.user_id)
+            raise HTTPException(status_code=403, detail="Not authorized to attach this document")
+
         already_attached = (
             db.query(SessionDocument)
             .filter(
@@ -148,18 +157,16 @@ def attach_document(session_id: str, document_id: str, db=Depends(get_db)):
 
 
 @router.delete("/sessions/{session_id}/documents/{document_id}")
-def detach_document(session_id: str, document_id: str, db=Depends(get_db)):
+def detach_document(session_id: str, document_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
     log = logger.bind(
         endpoint="DELETE /sessions/{session_id}/documents/{document_id}",
         session_id=session_id,
         document_id=document_id,
+        user_id=user_id,
     )
     log.info("detach_document.started")
     try:
-        session = db.query(Session).filter(Session.id == session_id).first()
-        if not session:
-            log.warning("detach_document.session_not_found")
-            raise HTTPException(status_code=404, detail="Session not found")
+        _get_owned_session(session_id, user_id, db)
 
         link = (
             db.query(SessionDocument)
