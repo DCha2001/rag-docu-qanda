@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DocuSmart",
+  title: "AIDocuReader",
   description: "An AI-powered document reader and question-answering tool.",
 };
 
