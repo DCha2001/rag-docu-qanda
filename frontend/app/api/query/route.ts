@@ -1,11 +1,17 @@
 import { NextRequest } from "next/server";
+import { getAccessToken } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const { query, session_id } = await request.json();
 
+  const token = await getAccessToken();
+
   const upstream = await fetch(`${process.env.API_URL}/query`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({ query, session_id }),
   });
 
