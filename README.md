@@ -106,15 +106,29 @@ cd AIDocuReader
 2. Create `backend/.env`:
 ```env
 DATABASE_URL=postgresql://postgres:postgres@db:5432/aidocureader
-ANTHROPIC_API_KEY=your_key_here
-CLAUDE_MODEL=claude-haiku-4-5-20251001
+ANTHROPIC_API_KEY=sk-ant-...
+claude_model=claude-haiku-4-5-20251001
 MODE=development
+
+# Optional — enhanced parsing via Unstructured API
+# UNSTRUCTURED_API_KEY=...
+
+# Optional — Voyage AI embeddings
+# VOYAGE_API_KEY=...
+
+# Optional — Supabase auth
+# SUPABASE_URL=https://your-project.supabase.co
+# ALLOWED_ORIGINS=http://localhost:3000
 ```
 
 3. Create `frontend/.env`:
 ```env
 API_URL=http://backend:8000
 MODE=development
+
+# Optional — only needed if using Supabase auth
+# NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 4. Start the database and backend:
@@ -135,6 +149,14 @@ docker compose up --build
 The app will be available at `http://localhost:3000`.
 
 > **Note:** Alembic migrations must be run inside the container (`docker compose exec backend ...`) because the `DATABASE_URL` uses the `db` Docker service hostname, which only resolves on the internal Docker network.
+
+### GPU acceleration (optional)
+
+If you have an Nvidia GPU, overlay the GPU compose file to enable it for the backend:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+```
 
 ---
 
