@@ -6,8 +6,7 @@ def combine_chunks(chunks):
     context_parts = []
     for i, chunk in enumerate(chunks, start=1):
         context_parts.append(
-            f"[Source {i}] (document_id: {chunk['document_id']}, "
-            f"relevance: {chunk['similarity_score']})\n"
+            f"Source {chunk['filename']}"
             f"{chunk['content']}"
         )
  

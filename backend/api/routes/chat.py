@@ -29,7 +29,7 @@ Rules:
 2. If the context does not contain enough information to answer the question,
    say "I don't have enough information in the provided documents to answer this."
    Do NOT guess or use outside knowledge.
-3. When you reference information, cite which document(s) by source number [Source i].
+3. When you reference information, cite which document(s) by the filename (filename).
 4. Be concise. Answer the question directly, then provide supporting detail
    if relevant.
 5. If different sources contain contradictory information, acknowledge the

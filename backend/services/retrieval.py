@@ -41,8 +41,10 @@ def search_simliar_chunks(
                         dc.document_id,
                         dc.content,
                         dc.chunk_index,
-                        1 - (dc.embedding <=> CAST(:query_vec AS vector)) AS similarity_score
+                        1 - (dc.embedding <=> CAST(:query_vec AS vector)) AS similarity_score,
+                        d.filename
                     FROM chunks dc
+                    JOIN documents d ON d.id = dc.document_id
                     WHERE 1 - (dc.embedding <=> CAST(:query_vec AS vector)) >= :threshold
                     {doc_filter_clause}
                     ORDER BY dc.embedding <=> CAST(:query_vec AS vector) ASC
@@ -68,6 +70,7 @@ def search_simliar_chunks(
                 "document_id": row.document_id,
                 "content": row.content,
                 "chunk_index": row.chunk_index,
+                'filename': row.filename,
                 "similarity_score": round(float(row.similarity_score), 4),
             }
             for row in rows
