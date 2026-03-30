@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createBackend } from "@/lib/backend";
-import { getAccessToken } from "@/lib/supabase/server";
+
+const backend = createBackend();
 
 export async function GET(
   _request: Request,
@@ -8,8 +9,6 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const token = await getAccessToken();
-    const backend = createBackend(token);
     const messages = await backend.sessions.getMessages(id);
     return NextResponse.json(messages);
   } catch (err) {

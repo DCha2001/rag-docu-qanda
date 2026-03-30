@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createBackend } from "@/lib/backend";
-import { getAccessToken } from "@/lib/supabase/server";
+
+const backend = createBackend();
 
 export async function DELETE(
   _request: Request,
@@ -8,8 +9,6 @@ export async function DELETE(
 ) {
   try {
     const { id, docId } = await params;
-    const token = await getAccessToken();
-    const backend = createBackend(token);
     const result = await backend.sessions.detachDocument(id, docId);
     return NextResponse.json(result);
   } catch (err) {

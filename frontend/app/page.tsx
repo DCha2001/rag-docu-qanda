@@ -1,19 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Sidebar from "./components/Sidebar";
 import ChatPanel, { Message } from "./components/ChatPanel";
 import { api } from "@/lib/fetchapi";
 import type { Doc } from "./components/Sidebar";
 import type { SessionResponse } from "./models/session";
-import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionResponse[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -66,22 +61,11 @@ export default function Home() {
     }
   }, []);
 
-  // On mount: load user, sessions, and docs
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserEmail(user?.email ?? null);
-    });
     fetchSessions();
     fetchDocs();
-  }, [fetchSessions, fetchDocs]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchSessions, fetchDocs]);
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
-  // When activeSessionId changes: load messages and session docs
   useEffect(() => {
     if (activeSessionId) {
       fetchSessionMessages(activeSessionId);
@@ -127,13 +111,11 @@ export default function Home() {
       await fetchDocs();
       toast.success("Document uploaded successfully");
 
-      // Auto-attach to active session if one is selected
       if (activeSessionId) {
         try {
           await api.sessions.attachDocument(activeSessionId, uploaded.id);
           await fetchSessionDocs(activeSessionId);
         } catch {
-          // Non-fatal: doc uploaded but auto-attach failed
           toast.error("Uploaded but could not auto-attach to session");
         }
       }
@@ -183,12 +165,10 @@ export default function Home() {
     if (!activeSessionId) return;
 
     setMessages((prev) => [...prev, { role: "user", text: query }]);
-    // Add empty assistant message that we'll fill in as chunks arrive
     setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
     setChatLoading(true);
 
     try {
-
       const res = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -227,7 +207,6 @@ export default function Home() {
               return msgs;
             });
           } else if (payload.text) {
-            // Hide loading dots once first chunk arrives
             setChatLoading(false);
             setMessages((prev) => {
               const msgs = [...prev];
@@ -258,18 +237,7 @@ export default function Home() {
   const hasDocuments = sessionDocs.some((d) => d.status === "completed");
 
   return (
-    <div className="flex h-screen flex-col bg-background">
-      {/* Top bar: user info + sign out */}
-      <header className="flex items-center justify-end gap-3 border-b border-border px-4 py-2 text-sm">
-        {userEmail && <span className="text-muted-foreground">{userEmail}</span>}
-        <button
-          onClick={handleSignOut}
-          className="rounded-md px-3 py-1 text-sm font-medium hover:bg-accent transition-colors"
-        >
-          Sign out
-        </button>
-      </header>
-      <div className="flex flex-1 overflow-hidden">
+    <div className="flex h-screen bg-background">
       <Sidebar
         sessions={sessions}
         activeSessionId={activeSessionId}
@@ -291,7 +259,6 @@ export default function Home() {
         hasDocuments={hasDocuments}
         activeSession={activeSession}
       />
-      </div>
     </div>
   );
 }

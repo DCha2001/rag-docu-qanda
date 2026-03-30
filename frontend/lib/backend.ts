@@ -41,10 +41,6 @@ async function fetchBackend<T>(
   return res.json();
 }
 
-/**
- * Create an authenticated backend client.
- * Pass the Supabase access_token from the server-side session.
- */
 export function createBackend(token?: string) {
   const fetch = <T>(path: string, init?: RequestInit) =>
     fetchBackend<T>(path, init, token);
