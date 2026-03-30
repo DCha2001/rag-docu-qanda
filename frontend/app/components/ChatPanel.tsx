@@ -109,7 +109,7 @@ export default function ChatPanel({
                 className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-muted text-foreground rounded-bl-sm"
+                    : ""
                 }`}
               >
                 {msg.role === "assistant" ? (
