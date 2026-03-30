@@ -54,7 +54,7 @@ def search_simliar_chunks(
         params = {
             "query_vec": str(query_embedding),
             "threshold": score_threshold,
-            "top_k": top_k,
+            "top_k": 20,
         }
 
         if document_ids:
@@ -75,6 +75,14 @@ def search_simliar_chunks(
             }
             for row in rows
         ]
-        return {"chunks": chunks}
+
+        reranked_chunks = _get_client().rerank(
+                                query=query,
+                                documents=[c.content for c in chunks],
+                                model="rerank-2.5",
+                                top_k=5
+                            )
+
+        return {"chunks": [chunks[r.index] for r in reranked_chunks.data]}
     except Exception as e:
         return {"error": str(e)}
