@@ -100,7 +100,7 @@ export default function ChatPanel({
               key={i}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              {msg.role === "assistant" && (
+              {(msg.role === "assistant" && !loading) && (
                 <div className="mr-2.5 mt-0.5 flex size-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
                   AI
                 </div>
