@@ -188,6 +188,7 @@ export default function Home() {
     setChatLoading(true);
 
     try {
+
       const res = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

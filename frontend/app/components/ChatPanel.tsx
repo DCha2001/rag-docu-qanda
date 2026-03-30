@@ -5,6 +5,7 @@ import { Send, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import ReactMarkdown from "react-markdown";
 import type { SessionResponse } from "@/app/models/session";
 
 export interface Message {
@@ -111,7 +112,27 @@ export default function ChatPanel({
                     : "bg-muted text-foreground rounded-bl-sm"
                 }`}
               >
-                {msg.text}
+                {msg.role === "assistant" ? (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      em: ({ children }) => <em className="italic">{children}</em>,
+                      ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+                      li: ({ children }) => <li>{children}</li>,
+                      code: ({ children }) => <code className="bg-background/60 rounded px-1 py-0.5 font-mono text-xs">{children}</code>,
+                      pre: ({ children }) => <pre className="bg-background/60 rounded p-2 overflow-x-auto font-mono text-xs mb-2">{children}</pre>,
+                      h1: ({ children }) => <h1 className="text-base font-bold mb-1">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-sm font-bold mb-1">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+                    }}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
+                ) : (
+                  msg.text
+                )}
               </div>
             </div>
           ))}
