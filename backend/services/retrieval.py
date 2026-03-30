@@ -63,26 +63,27 @@ def search_simliar_chunks(
         result = db.execute(sql, params)
         rows = result.fetchall()
 
-        # Step 3: Map rows to dicts for the response schema
-        chunks = [
-            {
-                "chunk_id": row.chunk_id,
-                "document_id": row.document_id,
-                "content": row.content,
-                "chunk_index": row.chunk_index,
-                'filename': row.filename,
-                "similarity_score": round(float(row.similarity_score), 4),
-            }
-            for row in rows
-        ]
+        # Step 3: Map rows to dicts for the response schem
 
         reranked_chunks = _get_client().rerank(
                                 query=query,
-                                documents=[c.content for c in chunks],
+                                documents=[c.content for c in rows],
                                 model="rerank-2.5",
                                 top_k=5
                             )
+        
+        chunks = [
+            {
+                "chunk_id": rows[index].chunk_id,
+                "document_id": rows[index].document_id,
+                "content": rows[index].content,
+                "chunk_index": rows[index].chunk_index,
+                'filename': rows[index].filename,
+                "similarity_score": round(float(chunk.relevance_score), 4),
+            }
+            for index, chunk in enumerate(reranked_chunks.data)
+        ]
 
-        return {"chunks": [chunks[r.index] for r in reranked_chunks.data]}
+        return {"chunks": chunks}
     except Exception as e:
         return {"error": str(e)}
