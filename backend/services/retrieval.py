@@ -79,9 +79,9 @@ def search_simliar_chunks(
                 "content": rows[index].content,
                 "chunk_index": rows[index].chunk_index,
                 'filename': rows[index].filename,
-                "similarity_score": round(float(chunk.relevance_score), 4),
+                "relevance_score": round(float(chunk.relevance_score), 4),
             }
-            for index, chunk in enumerate(reranked_chunks.data)
+            for index, chunk in enumerate(reranked_chunks.results)
         ]
 
         return {"chunks": chunks}
