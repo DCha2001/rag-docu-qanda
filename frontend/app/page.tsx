@@ -22,6 +22,11 @@ export default function Home() {
   const [uploading, setUploading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
 
+  useEffect(() => {
+    fetchDocs();
+
+  }, [uploading])
+
   const fetchSessions = useCallback(async () => {
     try {
       const data = await api.sessions.list();
