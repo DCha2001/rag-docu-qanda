@@ -23,7 +23,11 @@ export default function Home() {
   const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
-    fetchDocs();
+    const interval = setInterval(() => {
+      fetchDocs();
+    }, 1000);
+
+    return () => clearInterval(interval);
 
   }, [uploading])
 
