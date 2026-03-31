@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const token = await getAccessToken();
     const backend = createBackend(token);
+
+
     const doc = await backend.documents.upload(formData.get("file") as File);
     return NextResponse.json(doc);
   } catch (err) {

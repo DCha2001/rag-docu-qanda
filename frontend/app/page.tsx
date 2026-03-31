@@ -132,17 +132,23 @@ export default function Home() {
   async function handleUpload(file: File) {
     setUploading(true);
     try {
+
+      const MAX_FILE_SIZE_MB = 50
+      const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast.error(`File exceeds ${MAX_FILE_SIZE_MB}MB limit. Please upload a smaller document.`)
+        return
+      }
       const uploaded = await api.documents.upload(file);
       await fetchDocs();
       toast.success("Document uploaded successfully");
 
-      // Auto-attach to active session if one is selected
       if (activeSessionId) {
         try {
           await api.sessions.attachDocument(activeSessionId, uploaded.id);
           await fetchSessionDocs(activeSessionId);
         } catch {
-          // Non-fatal: doc uploaded but auto-attach failed
           toast.error("Uploaded but could not auto-attach to session");
         }
       }
