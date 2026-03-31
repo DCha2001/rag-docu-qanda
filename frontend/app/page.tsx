@@ -37,6 +37,11 @@ export default function Home() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchDocs();
+  },
+  [uploading])
+
   const fetchSessionDocs = useCallback(async (sessionId: string) => {
     try {
       const data = await api.sessions.getDocuments(sessionId);
