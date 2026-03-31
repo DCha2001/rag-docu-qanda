@@ -42,15 +42,27 @@ class _Element:
 
 def parse(file_path: str) -> list: #includes chunking via unstructured's chunking_strategy param
     """Parse and chunk a document via the Unstructured API. Returns chunked elements."""
-    try:
-        client = _get_unstructured_client()
-        with open(file_path, "rb") as f:
-            data = f.read()
+    client = _get_unstructured_client()
+    with open(file_path, "rb") as f:
+        data = f.read()
 
+    req = operations.PartitionRequest(
+        partition_parameters=shared.PartitionParameters(
+            files=shared.Files(content=data, file_name=os.path.basename(file_path)),
+            strategy=shared.Strategy.FAST,
+            languages=["eng"],
+            chunking_strategy="by_title",
+            max_characters=1500,
+            new_after_n_chars=1000,
+            combine_under_n_chars=200,
+        )
+    )
+    if len(req.elements) == 0:
+        logger.info('fast strategy failed in parsing. trying hi_res')
         req = operations.PartitionRequest(
             partition_parameters=shared.PartitionParameters(
                 files=shared.Files(content=data, file_name=os.path.basename(file_path)),
-                strategy=shared.Strategy.FAST,
+                strategy=shared.Strategy.HI_RES,
                 languages=["eng"],
                 chunking_strategy="by_title",
                 max_characters=1500,
@@ -58,24 +70,9 @@ def parse(file_path: str) -> list: #includes chunking via unstructured's chunkin
                 combine_under_n_chars=200,
             )
         )
-        if len(req.elements) == 0:
-            logger.info('fast strategy failed in parsing. trying hi_res')
-            req = operations.PartitionRequest(
-                partition_parameters=shared.PartitionParameters(
-                    files=shared.Files(content=data, file_name=os.path.basename(file_path)),
-                    strategy=shared.Strategy.HI_RES,
-                    languages=["eng"],
-                    chunking_strategy="by_title",
-                    max_characters=1500,
-                    new_after_n_chars=1000,
-                    combine_under_n_chars=200,
-                )
-            )
 
-        response = client.general.partition(request=req)
-        return [_Element(d) for d in response.elements]
-    except e as Exception:
-        raise e
+    response = client.general.partition(request=req)
+    return [_Element(d) for d in response.elements]
 
 def embed(chunks: list, cancel: threading.Event | None = None) -> list[list[float]]:
     client = _get_voyage_client()
