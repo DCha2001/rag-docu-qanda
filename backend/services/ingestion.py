@@ -57,7 +57,8 @@ def parse(file_path: str) -> list: #includes chunking via unstructured's chunkin
             combine_under_n_chars=200,
         )
     )
-    if len(req.elements) == 0:
+    response = client.general.partition(request=req)
+    if len(response.elements) == 0:
         logger.info('fast strategy failed in parsing. trying hi_res')
         req = operations.PartitionRequest(
             partition_parameters=shared.PartitionParameters(
@@ -70,8 +71,8 @@ def parse(file_path: str) -> list: #includes chunking via unstructured's chunkin
                 combine_under_n_chars=200,
             )
         )
+        response = client.general.partition(request=req)
 
-    response = client.general.partition(request=req)
     return [_Element(d) for d in response.elements]
 
 def embed(chunks: list, cancel: threading.Event | None = None) -> list[list[float]]:
