@@ -262,7 +262,7 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col bg-background">
       <WelcomeModal />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden" onClick={() => setActiveSessionId(null)}>
       <Sidebar
         sessions={sessions}
         activeSessionId={activeSessionId}
