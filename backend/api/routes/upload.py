@@ -16,7 +16,7 @@ from utils.hash import generate_hash
 from utils.cancellation import IngestionCancelledError
 import utils.cancellation as cancellation
 from schemas.documents import DocumentResponse
-from core.auth import get_current_user
+from core.auth import get_client_ip
 
 router = APIRouter()
 
@@ -31,7 +31,7 @@ async def ingest(
     request: Request,
     file: UploadFile = File(...),
     db=Depends(get_db),
-    user_id: str = Depends(get_current_user),
+    user_id: str = Depends(get_client_ip),
 ):
     log = logger.bind(endpoint="POST /ingest", filename=file.filename, user_id=user_id)
 

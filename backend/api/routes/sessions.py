@@ -6,7 +6,7 @@ from db.dbconnect import get_db
 from db.models import Session, Message, Document, SessionDocument
 from schemas.chat import SessionCreate, SessionOut, MessageOut
 from schemas.documents import DocumentResponse
-from core.auth import get_current_user
+from core.auth import get_client_ip
 
 logger = structlog.get_logger(__name__)
 
@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get("/sessions", response_model=list[SessionOut])
-def list_sessions(db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def list_sessions(db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(endpoint="GET /sessions", user_id=user_id)
     log.info("list_sessions.started")
     try:
@@ -32,7 +32,7 @@ def list_sessions(db=Depends(get_db), user_id: str = Depends(get_current_user)):
 
 
 @router.post("/sessions", response_model=SessionOut)
-def create_session(body: SessionCreate, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def create_session(body: SessionCreate, db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(endpoint="POST /sessions", user_id=user_id)
     log.info("create_session.started")
     try:
@@ -58,7 +58,7 @@ def _get_owned_session(session_id: str, user_id: str, db) -> Session:
 
 
 @router.delete("/sessions/{session_id}")
-def delete_session(session_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def delete_session(session_id: str, db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(endpoint="DELETE /sessions/{session_id}", session_id=session_id, user_id=user_id)
     log.info("delete_session.started")
     try:
@@ -75,7 +75,7 @@ def delete_session(session_id: str, db=Depends(get_db), user_id: str = Depends(g
 
 
 @router.get("/sessions/{session_id}/messages", response_model=list[MessageOut])
-def get_session_messages(session_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def get_session_messages(session_id: str, db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(endpoint="GET /sessions/{session_id}/messages", session_id=session_id, user_id=user_id)
     log.info("get_session_messages.started")
     try:
@@ -96,7 +96,7 @@ def get_session_messages(session_id: str, db=Depends(get_db), user_id: str = Dep
 
 
 @router.get("/sessions/{session_id}/documents", response_model=list[DocumentResponse])
-def get_session_documents(session_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def get_session_documents(session_id: str, db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(endpoint="GET /sessions/{session_id}/documents", session_id=session_id, user_id=user_id)
     log.info("get_session_documents.started")
     try:
@@ -111,7 +111,7 @@ def get_session_documents(session_id: str, db=Depends(get_db), user_id: str = De
 
 
 @router.post("/sessions/{session_id}/documents/{document_id}", response_model=DocumentResponse)
-def attach_document(session_id: str, document_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def attach_document(session_id: str, document_id: str, db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(
         endpoint="POST /sessions/{session_id}/documents/{document_id}",
         session_id=session_id,
@@ -157,7 +157,7 @@ def attach_document(session_id: str, document_id: str, db=Depends(get_db), user_
 
 
 @router.delete("/sessions/{session_id}/documents/{document_id}")
-def detach_document(session_id: str, document_id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def detach_document(session_id: str, document_id: str, db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(
         endpoint="DELETE /sessions/{session_id}/documents/{document_id}",
         session_id=session_id,

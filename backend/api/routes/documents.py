@@ -6,7 +6,7 @@ from db.dbconnect import get_db
 from db.models import Document
 from schemas.documents import DocumentResponse, MessageResponse
 import utils.cancellation as cancellation
-from core.auth import get_current_user
+from core.auth import get_client_ip
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ logger = structlog.get_logger(__name__)
 
 
 @router.delete("/document", response_model=MessageResponse)
-def delete_document(id: str, db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def delete_document(id: str, db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(endpoint="DELETE /document", document_id=id, user_id=user_id)
     log.info("delete_document.started")
 
@@ -48,7 +48,7 @@ def delete_document(id: str, db=Depends(get_db), user_id: str = Depends(get_curr
 
 
 @router.get("/document/list", response_model=list[DocumentResponse])
-def list_documents(db=Depends(get_db), user_id: str = Depends(get_current_user)):
+def list_documents(db=Depends(get_db), user_id: str = Depends(get_client_ip)):
     log = logger.bind(endpoint="GET /document", user_id=user_id)
     log.info("list_documents.started")
 

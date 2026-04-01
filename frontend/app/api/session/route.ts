@@ -1,11 +1,10 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createBackend } from "@/lib/backend";
-import { getAccessToken } from "@/lib/supabase/server";
+import { getClientIp } from "@/lib/client-ip";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const token = await getAccessToken();
-    const backend = createBackend(token);
+    const backend = createBackend(getClientIp(request));
     const sessions = await backend.sessions.list();
     return NextResponse.json(sessions);
   } catch (err) {
@@ -17,8 +16,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const { title } = await request.json();
-    const token = await getAccessToken();
-    const backend = createBackend(token);
+    const backend = createBackend(getClientIp(request));
     const session = await backend.sessions.create(title);
     return NextResponse.json(session);
   } catch (err) {

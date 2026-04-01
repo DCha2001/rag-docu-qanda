@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from core.limiter import limiter
 
 from core.client import get_anthropic_client
-from core.auth import get_current_user
+from core.auth import get_client_ip
 from db.dbconnect import get_db
 from services.retrieval import search_simliar_chunks
 from services.augment_utils import combine_chunks, build_user_message
@@ -44,7 +44,7 @@ def query(
     body: QueryRequest,
     client=Depends(get_anthropic_client),
     db=Depends(get_db),
-    user_id: str = Depends(get_current_user),
+    user_id: str = Depends(get_client_ip),
 ):
     log = logger.bind(endpoint="POST /query", query=body.query, model=CLAUDE_MODEL, user_id=user_id)
         # Verify session exists and belongs to the requesting user (IDOR protection)

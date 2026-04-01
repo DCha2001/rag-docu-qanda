@@ -1,16 +1,15 @@
 import { NextRequest } from "next/server";
-import { getAccessToken } from "@/lib/supabase/server";
+import { getClientIp } from "@/lib/client-ip";
 
 export async function POST(request: NextRequest) {
   const { query, session_id } = await request.json();
-
-  const token = await getAccessToken();
+  const ip = getClientIp(request);
 
   const upstream = await fetch(`${process.env.API_URL}/query`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "X-Real-IP": ip,
     },
     body: JSON.stringify({ query, session_id }),
   });

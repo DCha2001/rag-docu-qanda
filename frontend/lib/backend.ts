@@ -1,6 +1,6 @@
 /**
  * Called only in the backend (route.ts files).
- * Use createBackend(token) to create an authenticated client.
+ * Use createBackend(clientIp) to create a client that forwards the real IP.
  */
 import { ApiError } from "./error";
 import type { DocumentResponse, IngestResponse } from "@/app/models/documents";
@@ -10,12 +10,12 @@ import type { SessionResponse, MessageOut } from "@/app/models/session";
 const BASE_URL = process.env.API_URL ?? "http://localhost:8000";
 
 function buildHeaders(
-  token: string | undefined,
+  clientIp: string | undefined,
   extra?: Record<string, string>
 ): Record<string, string> {
   const headers: Record<string, string> = { ...extra };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (clientIp) {
+    headers["X-Real-IP"] = clientIp;
   }
   return headers;
 }
@@ -23,11 +23,11 @@ function buildHeaders(
 async function fetchBackend<T>(
   path: string,
   init?: RequestInit,
-  token?: string
+  clientIp?: string
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
-    headers: buildHeaders(token, init?.headers as Record<string, string>),
+    headers: buildHeaders(clientIp, init?.headers as Record<string, string>),
   });
   if (!res.ok) {
     let detail = res.statusText;
@@ -42,12 +42,11 @@ async function fetchBackend<T>(
 }
 
 /**
- * Create an authenticated backend client.
- * Pass the Supabase access_token from the server-side session.
+ * Create a backend client that forwards the real client IP.
  */
-export function createBackend(token?: string) {
+export function createBackend(clientIp?: string) {
   const fetch = <T>(path: string, init?: RequestInit) =>
-    fetchBackend<T>(path, init, token);
+    fetchBackend<T>(path, init, clientIp);
 
   return {
     documents: {

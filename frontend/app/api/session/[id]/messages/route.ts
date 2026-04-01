@@ -1,15 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { createBackend } from "@/lib/backend";
-import { getAccessToken } from "@/lib/supabase/server";
+import { getClientIp } from "@/lib/client-ip";
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const token = await getAccessToken();
-    const backend = createBackend(token);
+    const backend = createBackend(getClientIp(request));
     const messages = await backend.sessions.getMessages(id);
     return NextResponse.json(messages);
   } catch (err) {

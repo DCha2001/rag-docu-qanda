@@ -1,19 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Sidebar from "./components/Sidebar";
 import ChatPanel, { Message } from "./components/ChatPanel";
 import { api } from "@/lib/fetchapi";
 import type { Doc } from "./components/Sidebar";
 import type { SessionResponse } from "./models/session";
-import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionResponse[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -75,20 +70,11 @@ export default function Home() {
     }
   }, []);
 
-  // On mount: load user, sessions, and docs
+  // On mount: load sessions and docs
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserEmail(user?.email ?? null);
-    });
     fetchSessions();
     fetchDocs();
   }, [fetchSessions, fetchDocs]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
 
   // When activeSessionId changes: load messages and session docs
   useEffect(() => {
@@ -274,16 +260,6 @@ export default function Home() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      {/* Top bar: user info + sign out */}
-      <header className="flex items-center justify-end gap-3 border-b border-border px-4 py-2 text-sm">
-        {userEmail && <span className="text-muted-foreground">{userEmail}</span>}
-        <button
-          onClick={handleSignOut}
-          className="rounded-md px-3 py-1 text-sm font-medium hover:bg-accent transition-colors"
-        >
-          Sign out
-        </button>
-      </header>
       <div className="flex flex-1 overflow-hidden">
       <Sidebar
         sessions={sessions}

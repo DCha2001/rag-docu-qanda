@@ -1,15 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { createBackend } from "@/lib/backend";
-import { getAccessToken } from "@/lib/supabase/server";
+import { getClientIp } from "@/lib/client-ip";
 
 export async function DELETE(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const token = await getAccessToken();
-    const backend = createBackend(token);
+    const backend = createBackend(getClientIp(request));
     const result = await backend.sessions.delete(id);
     return NextResponse.json(result);
   } catch (err) {
