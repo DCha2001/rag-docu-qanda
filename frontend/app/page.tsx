@@ -7,6 +7,7 @@ import ChatPanel, { Message } from "./components/ChatPanel";
 import { api } from "@/lib/fetchapi";
 import type { Doc } from "./components/Sidebar";
 import type { SessionResponse } from "./models/session";
+import WelcomeModal from "./components/WelcomeModal";
 
 export default function Home() {
   const [sessions, setSessions] = useState<SessionResponse[]>([]);
@@ -260,6 +261,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
+      <WelcomeModal />
       <div className="flex flex-1 overflow-hidden">
       <Sidebar
         sessions={sessions}
