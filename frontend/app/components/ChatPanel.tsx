@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +19,7 @@ interface ChatPanelProps {
   onSend: (query: string) => void;
   hasDocuments: boolean;
   activeSession: SessionResponse | null;
+  onOpenSidebar: () => void;
 }
 
 export default function ChatPanel({
@@ -27,6 +28,7 @@ export default function ChatPanel({
   onSend,
   hasDocuments,
   activeSession,
+  onOpenSidebar,
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -69,12 +71,19 @@ export default function ChatPanel({
 
   return (
     <div className="flex flex-1 flex-col h-full bg-background">
-      {/* Session header bar */}
-      {activeSession && (
-        <div className="px-6 py-3 border-b text-sm font-medium text-foreground truncate">
-          {activeSession.title ?? "New session"}
-        </div>
-      )}
+      {/* Header bar */}
+      <div className="flex items-center gap-3 border-b px-4 py-3 md:px-6">
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenSidebar(); }}
+          className="flex md:hidden shrink-0 items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          aria-label="Open sidebar"
+        >
+          <Menu className="size-5" />
+        </button>
+        <span className="truncate text-sm font-medium text-foreground">
+          {activeSession ? (activeSession.title ?? "New session") : "AIDocuReader"}
+        </span>
+      </div>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">

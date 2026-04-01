@@ -17,6 +17,7 @@ export default function Home() {
   const [sessionDocs, setSessionDocs] = useState<Doc[]>([]);
   const [uploading, setUploading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -93,6 +94,7 @@ export default function Home() {
       const session = await api.sessions.create(null);
       setSessions((prev) => [session, ...prev]);
       setActiveSessionId(session.id);
+      setSidebarOpen(false);
       toast.success("New session created");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create session");
@@ -101,6 +103,7 @@ export default function Home() {
 
   function handleSelectSession(id: string) {
     setActiveSessionId(id);
+    setSidebarOpen(false);
   }
 
   async function handleDeleteSession(id: string) {
@@ -262,28 +265,42 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col bg-background">
       <WelcomeModal />
-      <div className="flex flex-1 overflow-hidden" onClick={() => setActiveSessionId(null)}>
-      <Sidebar
-        sessions={sessions}
-        activeSessionId={activeSessionId}
-        onNewSession={handleNewSession}
-        onSelectSession={handleSelectSession}
-        onDeleteSession={handleDeleteSession}
-        docs={docs}
-        sessionDocs={sessionDocs}
-        uploading={uploading}
-        onUpload={handleUpload}
-        onDeleteDoc={handleDeleteDoc}
-        onAttachDoc={handleAttachDoc}
-        onDetachDoc={handleDetachDoc}
-      />
-      <ChatPanel
-        messages={messages}
-        loading={chatLoading}
-        onSend={handleSend}
-        hasDocuments={hasDocuments}
-        activeSession={activeSession}
-      />
+      <div
+        className="flex flex-1 overflow-hidden"
+        onClick={() => {
+          // Only deselect on desktop where both panels are always visible
+          if (window.innerWidth >= 768) setActiveSessionId(null);
+        }}
+      >
+        {/* Sidebar: full-screen on mobile, fixed width on desktop */}
+        <div className={`${sidebarOpen ? "flex" : "hidden"} md:flex w-full md:w-auto shrink-0`}>
+          <Sidebar
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onNewSession={handleNewSession}
+            onSelectSession={handleSelectSession}
+            onDeleteSession={handleDeleteSession}
+            docs={docs}
+            sessionDocs={sessionDocs}
+            uploading={uploading}
+            onUpload={handleUpload}
+            onDeleteDoc={handleDeleteDoc}
+            onAttachDoc={handleAttachDoc}
+            onDetachDoc={handleDetachDoc}
+          />
+        </div>
+
+        {/* Chat panel: hidden on mobile when sidebar is open */}
+        <div className={`${sidebarOpen ? "hidden" : "flex"} md:flex flex-1 min-w-0`}>
+          <ChatPanel
+            messages={messages}
+            loading={chatLoading}
+            onSend={handleSend}
+            hasDocuments={hasDocuments}
+            activeSession={activeSession}
+            onOpenSidebar={() => setSidebarOpen(true)}
+          />
+        </div>
       </div>
     </div>
   );

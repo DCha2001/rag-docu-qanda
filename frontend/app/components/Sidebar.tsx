@@ -97,7 +97,7 @@ export default function Sidebar({
   );
 
   return (
-    <aside className="flex h-full w-72 flex-col border-r border-border bg-muted/30" onClick={(e) => e.stopPropagation()}>
+    <aside className="flex h-full w-full md:w-72 flex-col border-r border-border bg-muted/30" onClick={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="px-5 py-5">
         <h1 className="text-base font-semibold tracking-tight text-foreground">
