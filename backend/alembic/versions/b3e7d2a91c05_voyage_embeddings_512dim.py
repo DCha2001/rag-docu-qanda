@@ -1,7 +1,7 @@
 """switch embeddings to voyage-3-lite (512-dim)
 
 Revision ID: b3e7d2a91c05
-Revises: f942bcb9a26c
+Revises: e1a2b3c4d5e6
 Create Date: 2026-03-25
 
 """
@@ -11,7 +11,7 @@ from alembic import op
 import pgvector.sqlalchemy
 
 revision: str = 'b3e7d2a91c05'
-down_revision: Union[str, Sequence[str], None] = 'f942bcb9a26c'
+down_revision: Union[str, Sequence[str], None] = 'e1a2b3c4d5e6'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

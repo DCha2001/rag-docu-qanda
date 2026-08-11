@@ -17,7 +17,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Existing embeddings are 384-dim — incompatible with 512-dim.
+    # Existing embeddings are 512-dim — incompatible with 1024-dim.
     # Clear all chunks so documents get re-embedded on next ingest.
     op.execute("DELETE FROM chunks")
     op.execute("UPDATE documents SET status = 'uploaded', chunk_count = 0 WHERE status = 'completed'")
