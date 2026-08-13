@@ -22,7 +22,7 @@ export default function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       fetchDocs();
-    }, 1000);
+    }, 30000);
 
     return () => clearInterval(interval);
 
@@ -265,13 +265,7 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col bg-background">
       <WelcomeModal />
-      <div
-        className="flex flex-1 overflow-hidden"
-        onClick={() => {
-          // Only deselect on desktop where both panels are always visible
-          if (window.innerWidth >= 768) setActiveSessionId(null);
-        }}
-      >
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar: full-screen on mobile, fixed width on desktop */}
         <div className={`${sidebarOpen ? "flex" : "hidden"} md:flex w-full md:w-auto shrink-0`}>
           <Sidebar
